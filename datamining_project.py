@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 data = pd.read_table("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data2.csv", sep=",", low_memory=False)
+data = pd.read_table("flickr_data2_sample.csv", sep=",", low_memory=False)
 
 # Clean : on supprime certaines colonnes, les dates d'upload et les 3 dernières colonnes quasiment vides car pas utiles pour l'analyse
 # Certaines lignes ont également des valeurs décalées au niveau des dates de prises de photos, on les remet dans le bon sens
