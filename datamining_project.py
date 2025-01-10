@@ -65,6 +65,19 @@ print(data.info())
 data.to_csv("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean.csv", index=False)
 
 
+#################################AFFICHAGE AVEC SEABORN
+# cols=['lat','long']
+# # Plot the pairplot
+# fig = plt.figure(figsize = (20,20))
+# # pair plot
+# g = sns.pairplot(data=data[cols], diag_kind='hist')
+# # add a title to the figure
+# g.figure.suptitle('Pairplot', y=1.04)
+# # Add new legend
+# g.add_legend(loc='upper right')
+# # Adjust the layout to prevent title overlap
+# plt.tight_layout()
+# plt.show()
 
 ##############################
 #AFFICHER LA CARTE ET UN MARQUEUR, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
