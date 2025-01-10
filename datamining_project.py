@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-#data = pd.read_table("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data2.csv", sep=",", low_memory=False)
+data = pd.read_table("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data2.csv", sep=",", low_memory=False)
 data = pd.read_table("flickr_data2_sample.csv", sep=",", low_memory=False)
 
 # Clean : on supprime certaines colonnes, les dates d'upload et les 3 dernières colonnes quasiment vides car pas utiles pour l'analyse
@@ -51,7 +51,21 @@ print(data[data[columns_to_check].isnull().any(axis=1)][columns_to_check])
 # print(data.info())
 # print(data.describe()
 
-data.info()
+
+
+#################################AFFICHAGE AVEC SEABORN
+# cols=['lat','long']
+# # Plot the pairplot
+# fig = plt.figure(figsize = (20,20))
+# # pair plot
+# g = sns.pairplot(data=data[cols], diag_kind='hist')
+# # add a title to the figure
+# g.figure.suptitle('Pairplot', y=1.04)
+# # Add new legend
+# g.add_legend(loc='upper right')
+# # Adjust the layout to prevent title overlap
+# plt.tight_layout()
+# plt.show()
 
 ##############################
 #AFFICHER LA CARTE ET UN MARQUEUR, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
