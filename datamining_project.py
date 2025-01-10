@@ -7,11 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 data = pd.read_table("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data2.csv", sep=",", low_memory=False)
-# data = pd.read_table("../../flickr_data2.csv", sep=",", low_memory=False)
-
-##############################
-#    NETTOYAGE DES DONNÉES   #
-##############################
+data = pd.read_table("flickr_data2_sample.csv", sep=",", low_memory=False)
 
 # On supprime certaines colonnes, les dates d'upload et les 3 dernières colonnes quasiment vides car pas utiles pour l'analyse
 data.drop(data.columns[[11,12,13,14,15,16,17,18]], axis=1, inplace=True)
@@ -74,13 +70,7 @@ data.to_csv("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean.csv
 #AFFICHER LA CARTE ET UN MARQUEUR, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
 ##############################
 
-# my_map = folium.Map(location=(45.75, 4.83))
-
-# folium.CircleMarker(
-#     location=[45.75, 4.83],
-#     tooltip="Click me!",
-#     popup="Mt. Hood Meadows",
-#     radius = 3,
-# ).add_to(my_map)
-
-# my_map.save("map.html")
+my_map = folium.Map(location=(45.75, 4.83))
+for i in range(len(data)):
+    folium.CircleMarker(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip="Afficher titre", popup=data.at[i,"title"], radius = 3,).add_to(my_map)
+my_map.save("map.html")
