@@ -101,7 +101,7 @@ my_map.save("map.html")
 # Description of areas of interest using text pattern mining
 ##############################
 
-# Preprocessing
+# Preprocessing of tags and title
 
 csv_file_to_be_processed = csv_file_clean_sample
 csv_file_processed = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_sample_processed.csv"
@@ -112,8 +112,9 @@ def preprocessing(csv_file, csv_file_processed):
     # On supprime les lignes dont les tags et title sont vides
     data = data.dropna(subset=['tags', 'title'])
 
-    # On supprime les tags qui ne sont pas des mots
-    data['tags'] = data['tags'].str.replace('[^a-zA-Z ]', '')
+    # On supprime les tags et title qui ne sont pas des mots
+    data['tags'] = data['tags'].str.replace(r'[^a-zA-Z ]', '')
+    data['title'] = data['title'].str.replace(r'[^a-zA-Z ]', '')
 
     # On met tout en minuscule
     data['tags'] = data['tags'].str.lower()
@@ -123,4 +124,3 @@ def preprocessing(csv_file, csv_file_processed):
 
     # On enlève les "stopwords" anglais
     stopwords_english = ['a', 'about', 'above', 'after', 'again', 'against', 'all', 'am', 'an', 'and', 'any', 'are', 'aren', 't', 'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'couldn', 't', 'd', 'did', 'didn', 't', 'do', 'does', 'doesn', 't', 'doing', 'don', 't', 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had', 'hadn', 't', 'has', 'hasn', 't', 'have', 'haven', 't', 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'how', 'i', 'if', 'in', 'into', 'is', 'isn', 't', 'it', 'its', 'itself', 'just', 'll', 'm', 'ma', 'me', 'mightn', 't', 'more', 'most', 'mustn', 't', 'my', 'myself', 'needn', 't', 'no', 'nor', 'not', 'now', 'o', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 're', 's', 'same', 'shan', 't', 'she', 'should', 'should', 've']
-    
