@@ -151,16 +151,15 @@ if (clusterisation==1):
     ############################
     # Calculate silhouette scores
     ############################
+
     def silhouette(labels, n_clusters):
         silhouette_avg = silhouette_score(data_cluster, labels, metric='euclidean')
         sample_silhouette_values = silhouette_samples(data_cluster, labels, metric='euclidean')
         data['silhouette ' + clustering_algo] = sample_silhouette_values
 
         # silhouette per cluster
-        print(data.groupby('cluster '+ clustering_algo)['silhouette ' + clustering_algo].mean())
         data_by_cluster = data.groupby('cluster '+ clustering_algo)['silhouette ' + clustering_algo].mean()
         # number of elements per cluster
-        print(data['cluster ' + clustering_algo].value_counts())
         nb_by_cluster = data['cluster ' + clustering_algo].value_counts()
 
         plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster)
