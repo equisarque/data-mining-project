@@ -15,6 +15,10 @@ from scipy.cluster.hierarchy import dendrogram
 from sklearn.cluster import AgglomerativeClustering
 # silhouette scores
 from sklearn.metrics import silhouette_score, silhouette_samples
+# DBSCAN
+from sklearn.cluster import DBSCAN
+# scaler
+from sklearn.preprocessing import StandardScaler
 
 # TO DO #
 # DBSCAN
@@ -47,11 +51,11 @@ nb_line = 500
 # choisir l'algorithme de clusterisation
 
 #clustering_algo = "kmeans"
-clustering_algo = "hierarchical all_linkage"
+#clustering_algo = "hierarchical all_linkage"
 #clustering_algo = "hierarchical average"
 #clustering_algo = "hierarchical single"
 #clustering_algo = "hierarchical complete"
-#clustering_algo = "dbscan"
+clustering_algo = "dbscan"
 
 #################
 # Preparing data#
@@ -151,9 +155,11 @@ if (clusterisation==1):
     # plt.tight_layout()
     # plt.show()
 
-    # scaler
-    #on ne scale pas parce que lat et long sont comparable
-
+    # Scale the data
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data_cluster)
+    # create a DataFrame
+    data_cluster = pd.DataFrame(data=scaled_data, columns=data_cluster.columns)
 
     ############################
     # Calculate silhouette scores
@@ -216,6 +222,7 @@ if (clusterisation==1):
     #########
     #k-means#
     #########
+
     if (clustering_algo == "kmeans"):
         def elbow_method():
             # range of k
@@ -251,11 +258,10 @@ if (clusterisation==1):
             silhouette(labels=labels, n_clusters=6)
         k_means()
     
-    ##########################
-    # Hierarchical Clustering#
-    ##########################
-
-    if (clustering_algo == "hierarchical average" or clustering_algo == "hierarchical single" or clustering_algo == "hierarchical complete" or clustering_algo == "hierarchical all_linkage"):
+    #########################
+    #Hierarchical Clustering#
+    #########################
+    elif (clustering_algo == "hierarchical average" or clustering_algo == "hierarchical single" or clustering_algo == "hierarchical complete" or clustering_algo == "hierarchical all_linkage"):
 
     ##########################
     ########################### ILS FAUT RÉDUIRE LE NOMBRE DE POINT À UNE ZONE GÉOGRAPHIQUE RESTREINTE,CAR ÇA MARCHE PAS POUR TOUTES LES DATA ET COMPARER AVEC AUTRE ALGO
@@ -327,31 +333,101 @@ if (clusterisation==1):
                 #print(data[['silhouette TRUE hierarchical ' + link, 'silhouette hierarchical ' + link]])
 
         choosing_linkage()
+    
+    ########
+    #DBScan#
+    ########
+    
+
+    elif (clustering_algo == "dbscan"):
+        def recherche_opti():
+            eps_range = np.arange(0.01, 3, 0.01)
+            min_samples_range = range(2, 11)
+
+            # Store results
+            best_score = -1
+            best_eps = None
+            best_min_samples = None
+            scores = []
+
+            #Grid search
+            for eps in eps_range:
+                for min_samples in min_samples_range:
+                    # Fit DBSCAN
+                    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+                    labels = dbscan.fit_predict(data_cluster)
+                    print(labels)
+                    # Skip if all points are noise (-1)
+                    if len(np.unique(labels)) < 2 or -1 in labels:
+                        continue
+
+                    # Calculate silhouette score
+                    score = silhouette_score(data_cluster, labels)
+                    scores.append({'eps': eps, 'min_samples': min_samples, 'score': score})
+                    # Update best parameters if score is better
+                    if score > best_score:
+                        best_score = score
+                        best_eps = eps
+                        best_min_samples = min_samples
+
+            # Convert scores to DataFrame for easier analysis
+            scores_df = pd.DataFrame(scores)
+            print(scores_df)
+            print(f"Best score = {best_score}, best_eps = {best_eps}, best_min_samples = {min_samples}")
+
+            # Plot results
+            plt.figure(figsize=(12, 6))
+            for min_samples in min_samples_range:
+                mask = scores_df['min_samples'] == min_samples
+                plt.plot(scores_df[mask]['eps'], 
+                        scores_df[mask]['score'], 
+                        'o-', 
+                        label=f'min_samples={min_samples}')
+
+            plt.xlabel('Epsilon')
+            plt.ylabel('Silhouette Score')
+            plt.title('DBSCAN Parameters Optimization')
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+            plt.tight_layout()
+            plt.show()
+        recherche_opti()
+
+    # Apply DBSCAN with best parameters
+    # best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
+    # best_labels = best_dbscan.fit_predict(scaled_data)
+
+    # n_clusters = len(set(best_labels)) - (1 if -1 in best_labels else 0)
+    # n_noise = list(best_labels).count(-1)
+    # print(f"\nNumber of clusters: {n_clusters}")
+    # print(f"Number of noise points: {n_noise}")
+    # data['cluster dbscan'] = best_labels
+    # silhouette(clustering_algo, best_labels, n_clusters)
+
     ##############################
     #AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
     ##############################
 
-    my_map = folium.Map(location=(45.75, 4.83))
-    liste_color = [
-        "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
-        "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black", "BlanchedAlmond", "Blue",
-        "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse", "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson",
-        "Cyan"
-    ]
+    # my_map = folium.Map(location=(45.75, 4.83))
+    # liste_color = [
+    #     "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
+    #     "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black", "BlanchedAlmond", "Blue",
+    #     "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse", "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson",
+    #     "Cyan"
+    # ]
 
-    def creer_map(algo):
-        for i in range(len(data_cluster)):
-            folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
-        my_map.save(algo + "_map.html")
+    # def creer_map(algo):
+    #     for i in range(len(data_cluster)):
+    #         folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
+    #     my_map.save(algo + "_map.html")
 
 
-    if (clustering_algo == "hierarchical all_linkage"):
-        creer_map('hierarchical average')
-        creer_map('hierarchical single')
-        creer_map('hierarchical complete')
+    # if (clustering_algo == "hierarchical all_linkage"):
+    #     creer_map('hierarchical average')
+    #     creer_map('hierarchical single')
+    #     creer_map('hierarchical complete')
 
-    else:
-        creer_map(clustering_algo)
+    # else:
+    #     creer_map(clustering_algo)
 
     #afficher tous les schémas
     plt.show()
