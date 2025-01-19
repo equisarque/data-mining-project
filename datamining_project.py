@@ -24,7 +24,6 @@ from sklearn.metrics import silhouette_score, silhouette_samples
 # activer la partie Data Mining (le code de la Fougère)
 data_mining = 0 # 1 = activé, 0 = désactivé
 
-
 # activer la partie Clusterisation (le code du lutin)
 clusterisation = 1 # 1 = activé, 0 = désactivé
 
@@ -41,11 +40,11 @@ nb_line = 500
 
 # choisir l'algorithme de clusterisation
 
-clustering_algo = "cluster kmeans"
-# clustering_algo = "cluster hierarchical average"
-# clustering_algo = "cluster hierarchical single"
-# clustering_algo = "cluster hierarchical complete"
-# clustering_algo = "cluster dbscan"
+clustering_algo = "kmeans"
+# clustering_algo = "hierarchical average"
+# clustering_algo = "hierarchical single"
+# clustering_algo = "hierarchical complete"
+# clustering_algo = "dbscan"
 
 #################
 # Preparing data#
@@ -129,7 +128,7 @@ if (clusterisation==1):
     #drop column except long and lat
     data_cluster = data.drop(columns=["id","user","tags","title","date_taken_minute","date_taken_hour","date_taken_day","date_taken_month","date_taken_year"])
 
-    print(data)
+
     #################################AFFICHAGE AVEC SEABORN DU PAIRPLOT
 
     ## NE SERT À RIEN SUR LE PROJET PUISQUE REVIENT À UNE CARTE
@@ -147,92 +146,100 @@ if (clusterisation==1):
 
     # scaler
     #on ne scale pas parce que lat et long sont comparable
+
+
+    ############################
+    # Calculate silhouette scores
+    ############################
+    def silhouette(labels, n_clusters):
+        silhouette_avg = silhouette_score(data_cluster, labels, metric='euclidean')
+        sample_silhouette_values = silhouette_samples(data_cluster, labels, metric='euclidean')
+        data['silhouette ' + clustering_algo] = sample_silhouette_values
+
+        # silhouette per cluster
+        print(data.groupby('cluster '+ clustering_algo)['silhouette ' + clustering_algo].mean())
+        data_by_cluster = data.groupby('cluster '+ clustering_algo)['silhouette ' + clustering_algo].mean()
+        # number of elements per cluster
+        print(data['cluster ' + clustering_algo].value_counts())
+        nb_by_cluster = data['cluster ' + clustering_algo].value_counts()
+
+        plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster)
+
+    def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster):
+                # Create the plot
+                fig = plt.figure(figsize=(10, 6))
+                
+                y_lower = 10
+                for i in range(n_clusters):
+                    # Get silhouette scores for cluster i
+                    ith_cluster_values = sample_silhouette_values[labels == i]
+                    ith_cluster_values.sort()
+                    
+                    size_cluster_i = ith_cluster_values.shape[0]
+                    y_upper = y_lower + size_cluster_i
+                    
+                    # Fill the silhouette
+                    plt.fill_betweenx(np.arange(y_lower, y_upper),
+                                    0, ith_cluster_values,
+                                    alpha=0.7)
+                    
+                    # Label the silhouette plots
+                    plt.text(-0.05, y_lower + 0.5 * size_cluster_i, f'Cluster {i}, avg {data_by_cluster[i]:0.2f}, nb {nb_by_cluster[i]}')
+                    
+                    y_lower = y_upper + 10
+                
+                # Add vertical line for average silhouette score
+                plt.axvline(x=silhouette_avg, color='red', linestyle='--', 
+                            label=f'Average Silhouette: {silhouette_avg:.3f}')
+                
+                plt.title('Silhouette Plot')
+                plt.xlabel('Silhouette Coefficient')
+                plt.ylabel('Cluster')
+                plt.legend(loc='best')
+                plt.tight_layout()
+                plt.show()
+                return fig
+
+
         ################################
         # K MEANS
         ################################
-    if (clustering_algo == "cluster kmeans"):
-        ################################
-        # ELBOW METHOD
-        ################################
 
-        # # range of k
-        # range_k = range(1, 50)
-        # # a list of intertia scores
-        # inertias = []
+    if (clustering_algo == "kmeans"):
+        def elbow_method():
+            # range of k
+            range_k = range(1, 50)
+            # a list of intertia scores
+            inertias = []
 
-        # # vary k and apply k-means
-        # for i in range_k:
-        #     # apply k-means with i clusters
-        #     kmeans = KMeans(n_clusters=i, init='k-means++')
-        #     # fit data 
-        #     kmeans.fit(data_cluster)
-        #     # append inertia to the list
-        #     inertias.append(kmeans.inertia_)
+            # vary k and apply k-means
+            for i in range_k:
+                # apply k-means with i clusters
+                kmeans = KMeans(n_clusters=i, init='k-means++')
+                # fit data 
+                kmeans.fit(data_cluster)
+                # append inertia to the list
+                inertias.append(kmeans.inertia_)
 
-        # # visualise
-        # n = len(inertias)
-        # xticks_new = np.arange(1, n+1)
-        # plt.plot(xticks_new, inertias[0:n], 'bx-')
-        # plt.title('Finding the optimal number of clusters')
-        # plt.xlabel('# clusters')
-        # plt.ylabel('Sum of squared distances')
-        # plt.show()
-
-        # #finding the good number of cluster with elbow, result = 6
-
-        kmeans = KMeans(n_clusters=6, init='k-means++')
-        kmeans.fit(data_cluster)
-        labels = kmeans.labels_
-        data['cluster kmeans'] = labels
-
-        ############################
-        # Calculate silhouette scores for k-means
-        ############################
-
-        silhouette_avg = silhouette_score(data_cluster, labels, metric='euclidean')
-        sample_silhouette_values = silhouette_samples(data_cluster, labels, metric='euclidean')
-        data['silhouette kmeans'] = sample_silhouette_values
-
-        print(f"Sample Silhouette values: {sample_silhouette_values}")
-        print(data.groupby('cluster kmeans')['silhouette kmeans'].mean())
-        # number of elements per cluster
-        print(data['cluster kmeans'].value_counts())
-        def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, n_clusters=6):
-            # Create the plot
-            fig = plt.figure(figsize=(10, 6))
-            
-            y_lower = 10
-            for i in range(n_clusters):
-                # Get silhouette scores for cluster i
-                ith_cluster_values = sample_silhouette_values[labels == i]
-                ith_cluster_values.sort()
-                
-                size_cluster_i = ith_cluster_values.shape[0]
-                y_upper = y_lower + size_cluster_i
-                
-                # Fill the silhouette
-                plt.fill_betweenx(np.arange(y_lower, y_upper),
-                                0, ith_cluster_values,
-                                alpha=0.7)
-                
-                # Label the silhouette plots
-                plt.text(-0.05, y_lower + 0.5 * size_cluster_i, f'Cluster {i}')
-                
-                y_lower = y_upper + 10
-            
-            # Add vertical line for average silhouette score
-            plt.axvline(x=silhouette_avg, color='red', linestyle='--', 
-                        label=f'Average Silhouette: {silhouette_avg:.3f}')
-            
-            plt.title('Silhouette Plot')
-            plt.xlabel('Silhouette Coefficient')
-            plt.ylabel('Cluster')
-            plt.legend(loc='best')
-            plt.tight_layout()
+            # visualise
+            n = len(inertias)
+            xticks_new = np.arange(1, n+1)
+            plt.plot(xticks_new, inertias[0:n], 'bx-')
+            plt.title('Finding the optimal number of clusters')
+            plt.xlabel('# clusters')
+            plt.ylabel('Sum of squared distances')
             plt.show()
-            return fig
 
-        plot_silhouette(sample_silhouette_values, silhouette_avg, labels, n_clusters=6)
+        #finding the good number of cluster with elbow, result = 6
+
+        def k_means():
+            kmeans = KMeans(n_clusters=6, init='k-means++')
+            kmeans.fit(data_cluster)
+            labels = kmeans.labels_
+            data['cluster kmeans'] = labels
+
+            silhouette(labels=labels, n_clusters=6)
+        k_means()
     ############################
     # Hierarchical Clustering
     ############################
@@ -306,13 +313,14 @@ if (clusterisation==1):
 
     my_map = folium.Map(location=(45.75, 4.83))
     liste_color = [
+        "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
         "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black", "BlanchedAlmond", "Blue",
         "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse", "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson",
-        "Cyan", "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange"
+        "Cyan"
     ]
 
     for i in range(len(data_cluster)):
-        folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 3,color=liste_color[data.at[i,clustering_algo]%len(liste_color)]).add_to(my_map)
+        folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + clustering_algo]%len(liste_color)]).add_to(my_map)
     my_map.save("map.html")
 
 if (data_mining == 1):
