@@ -288,7 +288,7 @@ liste_color = [
 # Description des zones d'intérêt en utilisant des techniques de text mining
 ##############################
 
-# Librairies for text mining
+# Librairies pour le text mining
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.probability import FreqDist
@@ -302,8 +302,8 @@ import matplotlib.pyplot as plt
 csv_file_processed = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed.csv"
 csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
 
-# def preprocessing(csv_file, csv_file_processed):
-#     data = pd.read_table(csv_file, sep=",", low_memory=False)
+def preprocessing(csv_file, csv_file_processed):
+    data = pd.read_table(csv_file, sep=",", low_memory=False)
 
     # On enlève les caractères spéciaux et les chiffres dans tags et title, mais pas les accents ou autres caractères courants
     data['tags'] = data['tags'].str.replace(r'[^a-zA-Z éèôàëêöâäîïùûüç]', ' ', regex=True)
