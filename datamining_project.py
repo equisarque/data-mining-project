@@ -16,6 +16,12 @@ from sklearn.cluster import AgglomerativeClustering
 # silhouette scores
 from sklearn.metrics import silhouette_score, silhouette_samples
 
+# TO DO #
+# DBSCAN
+# HIERARCHICAL
+# SAMPLE SUR UNE ZONE GÉO
+# AVANT LE RENDU : SUPPRIMER "# vérifier qu'on a bien les bons résultats en passant par silouhette"
+
 
 #########################
 #CONFIGURER LE PROGRAMME#
@@ -40,11 +46,12 @@ nb_line = 500
 
 # choisir l'algorithme de clusterisation
 
-clustering_algo = "kmeans"
-# clustering_algo = "hierarchical average"
-# clustering_algo = "hierarchical single"
-# clustering_algo = "hierarchical complete"
-# clustering_algo = "dbscan"
+#clustering_algo = "kmeans"
+clustering_algo = "hierarchical all_linkage"
+#clustering_algo = "hierarchical average"
+#clustering_algo = "hierarchical single"
+#clustering_algo = "hierarchical complete"
+#clustering_algo = "dbscan"
 
 #################
 # Preparing data#
@@ -152,19 +159,26 @@ if (clusterisation==1):
     # Calculate silhouette scores
     ############################
 
-    def silhouette(labels, n_clusters):
+    def silhouette(current_algo, labels, n_clusters):
+        if (current_algo == "average"):
+            current_algo = "hierarchical average"
+        elif (current_algo == "single"):
+            current_algo = "hierarchical single"
+        elif (current_algo == "complete"):
+            current_algo = "hierarchical complete"
+
         silhouette_avg = silhouette_score(data_cluster, labels, metric='euclidean')
         sample_silhouette_values = silhouette_samples(data_cluster, labels, metric='euclidean')
-        data['silhouette ' + clustering_algo] = sample_silhouette_values
+        data['silhouette ' + current_algo] = sample_silhouette_values
 
         # silhouette per cluster
-        data_by_cluster = data.groupby('cluster '+ clustering_algo)['silhouette ' + clustering_algo].mean()
+        data_by_cluster = data.groupby('cluster '+ current_algo)['silhouette ' + current_algo].mean()
         # number of elements per cluster
-        nb_by_cluster = data['cluster ' + clustering_algo].value_counts()
+        nb_by_cluster = data['cluster ' + current_algo].value_counts()
 
-        plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster)
-
-    def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster):
+        plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster, current_algo)
+        
+    def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster, current_algo):
                 # Create the plot
                 fig = plt.figure(figsize=(10, 6))
                 
@@ -191,19 +205,17 @@ if (clusterisation==1):
                 plt.axvline(x=silhouette_avg, color='red', linestyle='--', 
                             label=f'Average Silhouette: {silhouette_avg:.3f}')
                 
-                plt.title('Silhouette Plot')
+                plt.title('Silhouette Plot - ' + current_algo)
                 plt.xlabel('Silhouette Coefficient')
                 plt.ylabel('Cluster')
                 plt.legend(loc='best')
                 plt.tight_layout()
-                plt.show()
                 return fig
 
 
-        ################################
-        # K MEANS
-        ################################
-
+    #########
+    #k-means#
+    #########
     if (clustering_algo == "kmeans"):
         def elbow_method():
             # range of k
@@ -227,7 +239,6 @@ if (clusterisation==1):
             plt.title('Finding the optimal number of clusters')
             plt.xlabel('# clusters')
             plt.ylabel('Sum of squared distances')
-            plt.show()
 
         #finding the good number of cluster with elbow, result = 6
 
@@ -239,73 +250,83 @@ if (clusterisation==1):
 
             silhouette(labels=labels, n_clusters=6)
         k_means()
-    ############################
-    # Hierarchical Clustering
-    ############################
+    
+    ##########################
+    # Hierarchical Clustering#
+    ##########################
 
-
+    if (clustering_algo == "hierarchical average" or clustering_algo == "hierarchical single" or clustering_algo == "hierarchical complete" or clustering_algo == "hierarchical all_linkage"):
 
     ##########################
     ########################### ILS FAUT RÉDUIRE LE NOMBRE DE POINT À UNE ZONE GÉOGRAPHIQUE RESTREINTE,CAR ÇA MARCHE PAS POUR TOUTES LES DATA ET COMPARER AVEC AUTRE ALGO
 
-    # def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_title='coordinates', **kwargs):
-    #     # Create linkage matrix and then plot the dendrogram
+        def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_title='coordinates', **kwargs):
+            # Create linkage matrix and then plot the dendrogram
 
-    #     # create the counts of samples under each node
-    #     counts = np.zeros(model.children_.shape[0])
-    #     n_samples = len(model.labels_)
-    #     for i, merge in enumerate(model.children_):
-    #         current_count = 0
-    #         for child_idx in merge:
-    #             if child_idx < n_samples:
-    #                 current_count += 1
-    #             else:
-    #                 current_count += counts[child_idx - n_samples]
-    #         counts[i] = current_count
+            # create the counts of samples under each node
+            counts = np.zeros(model.children_.shape[0])
+            n_samples = len(model.labels_)
+            for i, merge in enumerate(model.children_):
+                current_count = 0
+                for child_idx in merge:
+                    if child_idx < n_samples:
+                        current_count += 1
+                    else:
+                        current_count += counts[child_idx - n_samples]
+                counts[i] = current_count
 
-    #     linkage_matrix = np.column_stack([
-    #            model.children_,
-    #            model.distances_,
-    #            counts
-    #        ]).astype(float)
+            linkage_matrix = np.column_stack([
+                model.children_,
+                model.distances_,
+                counts
+            ]).astype(float)
 
-    #     fig = plt.figure(figsize=(12, 8))
-        
-    #     # Plot the corresponding dendrogram
-    #     dendrogram(linkage_matrix, labels=lbls, leaf_rotation=90)
-        
-    #     plt.title(title)
-    #     plt.xlabel(x_title)
-    #     plt.ylabel('Distance')
-        
-    #     fig.show()
-        
-    #     return fig
+            fig = plt.figure(figsize=(12, 8))
+            
+            # Plot the corresponding dendrogram
+            dendrogram(linkage_matrix, labels=lbls, leaf_rotation=90)
+            
+            plt.title(title)
+            plt.xlabel(x_title)
+            plt.ylabel('Distance')
+            fig.show()
+            return fig
 
-    # def hierarchical(data, labels, metric='euclidean', linkage='average', n_clusters=None, dist_thres=None):
-    #     model = AgglomerativeClustering(distance_threshold=dist_thres, n_clusters=n_clusters, metric=metric, linkage=linkage, compute_full_tree=True, compute_distances=True)
-    #     model = model.fit(data)
-        
-    #     txt_title = 'Hierarchical Clustering Dendrogram' + ', linkage: ' + linkage
-    #     f = plot_dendrogram(model=model, lbls=labels, title=txt_title, x_title='Flowers')
-        
-    #     return model, f
+        def hierarchical(data, labels, metric='euclidean', linkage='average', n_clusters=None, dist_thres=None):
+            model = AgglomerativeClustering(distance_threshold=dist_thres, n_clusters=n_clusters, metric=metric, linkage=linkage, compute_full_tree=True, compute_distances=True)
+            model = model.fit(data)
+            
+            txt_title = 'Hierarchical Clustering Dendrogram, linkage: ' + linkage
+            f = plot_dendrogram(model=model, lbls=labels, title=txt_title, x_title='coordinates')
+            
+            return model, f
 
-    # # types of linkage to consider
-    # linkage = ['complete', 'average', 'single']
+        def choosing_linkage():
+            
+            if (clustering_algo == "hierarchical average"):
+                linkage = ['average']
+            elif (clustering_algo == "hierarchical single"):
+                linkage = ['single']
+            elif (clustering_algo == "hierarchical single"):
+                linkage = ['complete']
+            else:
+                linkage = ['complete', 'average', 'single']
 
-    # for link in linkage:
-    #     m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=6, dist_thres=None)
-        
-    #     data['cluster ' + link] = m.labels_
-    #     silhouette_avg = silhouette_score(data_cluster, m.labels_, metric='euclidean')
-    #     sample_silhouette_values = silhouette_samples(data_cluster, m.labels_, metric='euclidean')
-    #     data['silhouette ' + link] = sample_silhouette_values
-        
-    #     print(f"Linkage: {link}, silhouette score: {silhouette_avg}")
+            for link in linkage:
+                m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=6, dist_thres=None)
+                labels = m.labels_
+                data['cluster hierarchical ' + link] = m.labels_
+                silhouette(link, labels=labels, n_clusters=6)
+                
+                # vérifier qu'on a bien les bons résultats en passant par silouhette
+                #silhouette_avg = silhouette_score(data_cluster, m.labels_, metric='euclidean')
+                #sample_silhouette_values = silhouette_samples(data_cluster, m.labels_, metric='euclidean')
+                #data['silhouette TRUE hierarchical ' + link] = sample_silhouette_values
 
-    # plt.show()
+                #print(f"Linkage: {link}, silhouette score: {silhouette_avg}")
+                #print(data[['silhouette TRUE hierarchical ' + link, 'silhouette hierarchical ' + link]])
 
+        choosing_linkage()
     ##############################
     #AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
     ##############################
@@ -318,10 +339,24 @@ if (clusterisation==1):
         "Cyan"
     ]
 
-    for i in range(len(data_cluster)):
-        folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + clustering_algo]%len(liste_color)]).add_to(my_map)
-    my_map.save("map.html")
+    def creer_map(algo):
+        for i in range(len(data_cluster)):
+            folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
+        my_map.save(algo + "_map.html")
 
+
+    if (clustering_algo == "hierarchical all_linkage"):
+        creer_map('hierarchical average')
+        creer_map('hierarchical single')
+        creer_map('hierarchical complete')
+
+    else:
+        creer_map(clustering_algo)
+
+    #afficher tous les schémas
+    plt.show()
+
+    
 if (data_mining == 1):
     ##############################
     # Description des zones d'intérêt en utilisant des techniques de text mining
