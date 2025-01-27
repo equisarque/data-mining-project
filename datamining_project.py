@@ -632,5 +632,3 @@ if (data_mining == 1):
     # TF_IDF(csv_file_processed_sample_cluster, 3)
 
     analyse_temporelle(csv_file_processed_sample_cluster, 3)
-
-print(nb_cluster_current)
