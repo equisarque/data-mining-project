@@ -23,6 +23,7 @@ from sklearn.preprocessing import StandardScaler
 # Librairies pour le text mining
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
+from gensim.utils import tokenize
 from nltk.probability import FreqDist
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
@@ -41,10 +42,10 @@ import matplotlib.pyplot as plt
 #########################
 
 # activer la partie Data Mining (le code de la Fougère)
-data_mining = 0 # 1 = activé, 0 = désactivé
+data_mining = 1 # 1 = activé, 0 = désactivé
 
 # activer la partie Clusterisation (le code du lutin)
-clusterisation = 1 # 1 = activé, 0 = désactivé
+clusterisation = 0 # 1 = activé, 0 = désactivé
 
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
@@ -323,6 +324,7 @@ def creer_map(algo, my_map, liste_color):
     my_map.save(algo + "_map.html")
 
 
+# Prétraitement des données pour le text mining
 def preprocessing(csv_file, csv_file_processed):
     data = pd.read_table(csv_file, sep=",", low_memory=False)
 
@@ -354,22 +356,26 @@ def preprocessing(csv_file, csv_file_processed):
     data['tags'].fillna('', inplace=True)
     data['title'].fillna('', inplace=True)
 
+    # On joint les tags et les titres dans une nouvelle colonne
+    data['text'] = data['title'] + ' ' + data['tags']
+
     # On met les données dans un fichier csv
     data.to_csv(csv_file_processed, index=False, sep=",")
 
-# Création d'un word cloud avec les données preprocessées
 
+# Création d'un word cloud avec les données preprocessées
 def wordcloud(csv_file_processed):
     data = pd.read_table(csv_file_processed, sep=",", low_memory=False)
 
-    data['tags'].fillna('', inplace=True)
-    data['title'].fillna('', inplace=True)
-
+    # On essaye de tokeniser la colonne text, mais la tokenization est inefficace pour les tags et title
+    # car les mots sont souvent collés les uns aux autres, et il n'y a pas de ponctuation, verbes, etc.
+    # La tokenization est donc inutile pour ce dataset en particulier
+    data['text'] = data['text'].apply(lambda x: word_tokenize(x))
+    
     # On crée une liste de mots avec les titres et les tags
     words = []
     for i in range(len(data)):
-        words += data.at[i, 'title'].split()
-        words += data.at[i, 'tags'].split()
+        words += data.at[i, 'text']
 
     # On crée un word cloud
     wordcloud = WordCloud(width = 800, height = 800,
@@ -388,14 +394,8 @@ def wordcloud(csv_file_processed):
 def TF_IDF(csv_file_processed, nb_clusters):
     data = pd.read_table(csv_file_processed, sep=",", low_memory=False)
 
-    # On garantit que les tags et les titres sont bien des strings
-    data['tags'] = data['tags'].astype(str)
-    data['title'] = data['title'].astype(str)
-
-    # On commence par joindre les tags et les titres dans une nouvelle colonne puis on tokenise
-    data['text'] = data['title'] + ' ' + data['tags']
     data['text'] = data['text'].apply(lambda x: word_tokenize(x))
-    
+
     # On crée un dictionnaire avec les mots et leur fréquence
     words = {}
     for i in range(len(data)):
@@ -428,12 +428,59 @@ def TF_IDF(csv_file_processed, nb_clusters):
 
     # On affiche les mots les plus importants pour chaque cluster
     for i in range(nb_clusters):
-        tf_idf[i].pop('nan')
         print("Cluster", i)
         print(sorted(tf_idf[i], key=tf_idf[i].get, reverse=True)[:10])
 
+
+# Étude sur l'axe temporel
+# Pour chaque cluster, on détermine l'interval de temps où les photos ont été prises
+# Si cet interval est très court, cela signifie que c'est un cluster temporel ponctuel
+# Si cet interval est très long, cela signifie que c'est un cluster temporel permanent
+# On a ces colonnes : date_taken_minute,date_taken_hour,date_taken_day,date_taken_month,date_taken_year
+# Il faut en faire une seule date sur lesquelles on peut calculer l'interval entre 
+# Date max et date min pour chaque cluster
+def analyse_temporelle(csv_file, nb_clusters):
+    data = pd.read_table(csv_file, sep=",", low_memory=False)
+
+    # On crée une colonne date
+    data.rename(columns={'date_taken_year': 'year', 'date_taken_month': 'month', 'date_taken_day': 'day', 'date_taken_hour': 'hour', 'date_taken_minute': 'minute'}, inplace=True)
+    data['date'] = pd.to_datetime(data[['year', 'month', 'day', 'hour', 'minute']])
+
+    # On crée un dictionnaire avec les dates min et max pour chaque cluster
+    dates = {}
+    for i in range(nb_clusters):
+        dates[i] = {'min': None, 'max': None}
+    for i in range(len(data)):
+        if dates[data.at[i, 'cluster']]['min'] is None or data.at[i, 'date'] < dates[data.at[i, 'cluster']]['min']:
+            dates[data.at[i, 'cluster']]['min'] = data.at[i, 'date']
+        if dates[data.at[i, 'cluster']]['max'] is None or data.at[i, 'date'] > dates[data.at[i, 'cluster']]['max']:
+            dates[data.at[i, 'cluster']]['max'] = data.at[i, 'date']
+
+    # On affiche les dates min et max pour chaque cluster
+    for i in range(nb_clusters):
+        print("Cluster", i)
+        print("Date min:", dates[i]['min'])
+        print("Date max:", dates[i]['max'])
+
+    # On regarde maintenant la différence entre les dates min et max pour chaque cluster
+    # Si la différence est très grande (plus de 1 mois), cela signifie que c'est un cluster temporel permanent
+    # On ajoute donc une autre colonne pour chaque cluster qui indique si c'est un cluster temporel ponctuel ou permanent
+    for i in range(len(data)):
+        if (dates[data.at[i, 'cluster']]['max'] - dates[data.at[i, 'cluster']]['min']).days > 30:
+            data.at[i, 'temporal_cluster'] = 'permanent'
+        else:
+            data.at[i, 'temporal_cluster'] = 'ponctual'
+    
+    # On affiche pour chaque cluster si il est temporel ponctuel ou permanent
+    for i in range(nb_clusters):
+        print("Cluster", i)
+        print(data[data['cluster'] == i]['temporal_cluster'].value_counts())
+    
+    
+
+
 #################
-# Préparer  data#
+# Préparer data #
 #################
 if (clusterisation==1):
 
@@ -567,9 +614,11 @@ if (data_mining == 1):
     csv_file_processed = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed.csv"
     csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
 
-    # preprocessing(csv_file_clean_sample, csv_file_processed_sample)
+    # preprocessing("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean-SAMPLE.csv", csv_file_processed_sample)
     # wordcloud(csv_file_processed_sample)
 
     csv_file_processed_sample_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE_fake_clusters.csv"
 
-    TF_IDF(csv_file_processed_sample_cluster, 3)
+    # TF_IDF(csv_file_processed_sample_cluster, 3)
+
+    analyse_temporelle(csv_file_processed_sample_cluster, 3)
