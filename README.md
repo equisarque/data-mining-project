@@ -29,3 +29,5 @@ on fait la partie cluster avec les cartes
 5) montre toutes les fcts et à chaque fois le bout du fichier final concerné flickr_data_final.csv
 
 6) on créer la map final avec le fichier final
+
+7) zoom sur dbscan
