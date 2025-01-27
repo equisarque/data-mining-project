@@ -59,16 +59,16 @@ data_to_clean = 0 # 0 : don't clean, 1 : clean
 #/!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
 
 # choisir le nombres de ligne aléatoire du fichier, 0 = toutes les lignes
-nb_line = 10000
+nb_line = 500
 
 # choisir l'algorithme de clusterisation
 
 #clustering_algo = "kmeans"
-#clustering_algo = "hierarchical all_linkage"
+clustering_algo = "hierarchical all_linkage"
 #clustering_algo = "hierarchical average"
 #clustering_algo = "hierarchical single"
 #clustering_algo = "hierarchical complete"
-clustering_algo = "dbscan"
+#clustering_algo = "dbscan"
 
 #ne pas manipuler
 nb_cluster_current = 0
@@ -137,7 +137,7 @@ def cleaning(csv_file, csv_file_clean):
     return True
 
 # Calcul du silhouette score
-def silhouette(current_algo, labels, n_clusters, data):
+def silhouette(current_algo, n_clusters, data):
     global nb_cluster_current
     if (current_algo == "average"):
         current_algo = "hierarchical average"
@@ -212,7 +212,7 @@ def k_means():
     kmeans.fit(data_cluster)
     labels = kmeans.labels_
     data['cluster kmeans'] = labels
-    silhouette(labels=labels, n_clusters=6)
+    silhouette(clustering_algo, 6, data)
 
 # Affichage de Hierarchical Clustering
 def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_title='coordinates', **kwargs):
@@ -273,7 +273,7 @@ def choosing_linkage():
         m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=6, dist_thres=None)
         labels = m.labels_
         data['cluster hierarchical ' + link] = m.labels_
-        silhouette(link, labels=labels, n_clusters=6)
+        silhouette(link, 6, data)
         
         # vérifier qu'on a bien les bons résultats en passant par silouhette
         #silhouette_avg = silhouette_score(data_cluster, m.labels_, metric='euclidean')
@@ -304,7 +304,7 @@ def applied_DBscan(best_eps, best_min_samples):
     best_labels = best_dbscan.fit_predict(scaled_data)
     data['cluster dbscan'] = best_labels
     n_clusters = len(set(best_labels)) - (1 if -1 in best_labels else 0)
-    silhouette(clustering_algo, best_labels, n_clusters, data)
+    silhouette(clustering_algo, n_clusters, data)
 
 # Création de la carte
 def creer_map(algo, my_map, liste_color, csv_file):
@@ -622,9 +622,9 @@ if (data_mining == 1):
     ]
 
     if (clustering_algo == "hierarchical all_linkage"):
-        creer_map('hierarchical average')
-        creer_map('hierarchical single')
-        creer_map('hierarchical complete')
+        creer_map('hierarchical average', my_map, liste_color)
+        creer_map('hierarchical single', my_map, liste_color)
+        creer_map('hierarchical complete', my_map, liste_color)
 
     else:
         creer_map(clustering_algo, my_map, liste_color, csv_file_temporel)
