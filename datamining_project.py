@@ -46,7 +46,7 @@ import matplotlib.pyplot as plt
 data_mining = 1 # 1 = activé, 0 = désactivé
 
 # activer la partie Clusterisation (le code du lutin)
-clusterisation = 1 # 1 = activé, 0 = désactivé
+clusterisation = 0 # 1 = activé, 0 = désactivé
 
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
@@ -64,11 +64,11 @@ nb_line = 500
 # choisir l'algorithme de clusterisation
 
 #clustering_algo = "kmeans"
-clustering_algo = "hierarchical all_linkage"
+# clustering_algo = "hierarchical all_linkage"
 #clustering_algo = "hierarchical average"
 #clustering_algo = "hierarchical single"
 #clustering_algo = "hierarchical complete"
-#clustering_algo = "dbscan"
+clustering_algo = "dbscan"
 
 #ne pas manipuler
 nb_cluster_current = 0
@@ -582,14 +582,14 @@ if (data_mining == 1):
     after_clustering = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clustered.csv"
     csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
 
-    preprocessing(after_clustering, csv_file_processed_sample)
+    # preprocessing(csv_file_clean_with_cluster, csv_file_processed_sample)
     wordcloud(csv_file_processed_sample)
 
     csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
-    TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
+    # TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
 
     csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_final.csv"
-    analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
+    # analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
 
     ##############################
     #AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR

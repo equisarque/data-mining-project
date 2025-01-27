@@ -25,9 +25,6 @@ from sklearn.preprocessing import StandardScaler
 # Librairies pour le text mining
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from nltk.probability import FreqDist
-from nltk.corpus import wordnet
-from nltk.stem import WordNetLemmatizer
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
@@ -328,7 +325,7 @@ def preprocessing(csv_file, csv_file_processed):
     data['tags'] = data['tags'].str.lower()
     data['title'] = data['title'].str.lower()
 
-    # Lorsque tags ou title est de longueur 0, on le remplace par le contenu de l'autre
+    # On remplace d'éventuels NAN par des chaînes de caractères vides
     data['tags'].fillna('', inplace=True)
     data['title'].fillna('', inplace=True)
 
@@ -339,7 +336,7 @@ def preprocessing(csv_file, csv_file_processed):
     data['title'] = data['title'].apply(lambda x: ' '.join([item for item in x.split() if item not in stop_words_fr]))
 
     # On enlève les mots trop fréquents ou qui les contiennent ou lettres seules dans title et tags
-    frequent_words = ['photo', 'picture', 'image', 'photography', 'photograph', 'photographie','lyon', 'france', 'flickr', 'photographer', 'photographie', 'streetphotography','iphone','lesphotosdevoyage','img','jpg','jpeg','png']
+    frequent_words = ['photo', 'picture', 'image', 'photography', 'photograph', 'photographie','lyon', 'france', 'flickr', 'photographer', 'photographie', 'streetphotography','iphone','lesphotosdevoyage','img','jpg','jpeg','png','iphoneography']
     solo_letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
     data['title'] = data['title'].apply(lambda x: ' '.join([item for item in x.split() if item not in frequent_words and item not in solo_letters]))
     data['tags'] = data['tags'].apply(lambda x: ' '.join([item for item in x.split() if item not in frequent_words and item not in solo_letters]))
@@ -381,11 +378,11 @@ def wordcloud(csv_file_processed):
     plt.show()
 
 
-# On suppose que le fichier a été nettoyé, prétraité et avec une colonne d'entiers représentant à quel cluster appartient chaque ligne
-# On cherche donc maintenant à trouver les meilleurs mots pour décrire chaque cluster en utilisant la méthode "term frequency and inverse document frequency"
+# On cherche maintenant à trouver les meilleurs mots pour décrire chaque cluster en utilisant la méthode "term frequency and inverse document frequency"
 def TF_IDF(csv_file_processed, nb_clusters, csv_file_tfidf):
     data = pd.read_table(csv_file_processed, sep=",", low_memory=False)
 
+    # On essaye de tokeniser la colonne text, mais la tokenization est inefficace pour ce dataset
     data['text'] = data['text'].apply(lambda x: word_tokenize(x))
 
     # On crée un dictionnaire avec les mots et leur fréquence
@@ -419,11 +416,6 @@ def TF_IDF(csv_file_processed, nb_clusters, csv_file_tfidf):
             tf_idf[data.at[i, 'cluster dbscan']][word] = tf * idf
         data.at[i, 'text'] = ' '.join(data.at[i, 'text'])
 
-    # On affiche les mots les plus importants pour chaque cluster
-    # for i in range(nb_clusters):
-    #     print("Cluster", i)
-    #     print(sorted(tf_idf[i], key=tf_idf[i].get, reverse=True)[:10])
-
     # On ajoute une colonne pour chaque ligne avec les 10 mots les plus importants du cluster auquel elle appartient
     for i in range(len(data)):
         data.at[i, 'important_words'] = ' '.join(sorted(tf_idf[data.at[i, 'cluster dbscan']], key=tf_idf[data.at[i, 'cluster dbscan']].get, reverse=True)[:10])
@@ -437,8 +429,7 @@ def TF_IDF(csv_file_processed, nb_clusters, csv_file_tfidf):
 # Si cet intervalle est très court, cela signifie que c'est un cluster temporel ponctuel
 # Si cet intervalle est très long, cela signifie que c'est un cluster temporel permanent
 # On a ces colonnes : date_taken_minute,date_taken_hour,date_taken_day,date_taken_month,date_taken_year
-# Il faut en faire une seule date sur lesquelles on peut calculer l'intervalle entre 
-# Date max et date min pour chaque cluster
+# Il faut en faire une seule date sur lesquelles on peut calculer l'intervalle entre min et max
 def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
     data = pd.read_table(csv_file, sep=",", low_memory=False)
 
@@ -456,12 +447,6 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
         if dates[data.at[i, 'cluster dbscan']]['max'] is None or data.at[i, 'date'] > dates[data.at[i, 'cluster dbscan']]['max']:
             dates[data.at[i, 'cluster dbscan']]['max'] = data.at[i, 'date']
 
-    # On affiche les dates min et max pour chaque cluster
-    # for i in range(nb_clusters):
-    #     print("Cluster", i)
-    #     print("Date min:", dates[i]['min'])
-    #     print("Date max:", dates[i]['max'])
-
     # On regarde maintenant la différence entre les dates min et max pour chaque cluster
     # Si la différence est très grande (arbitrairement plus de 1 mois), cela signifie que c'est un cluster temporel permanent
     # On ajoute donc une autre colonne pour chaque cluster qui indique si c'est un cluster temporel ponctuel ou permanent
@@ -470,11 +455,6 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
             data.at[i, 'temporal_cluster'] = 'permanent'
         else:
             data.at[i, 'temporal_cluster'] = 'ponctuel'
-    
-    # On affiche pour chaque cluster si il est temporel ponctuel ou permanent
-    # for i in range(nb_clusters):
-    #     print("Cluster", i)
-    #     print(data[data['cluster dbscan'] == i]['temporal_cluster'].value_counts())
     
     # On met les données dans un fichier csv
     data.to_csv(csv_file_temporel, index=False, sep=",")
