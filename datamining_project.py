@@ -43,7 +43,7 @@ import matplotlib.pyplot as plt
 #########################
 
 # activer la partie Data Mining (le code de la Fougère)
-data_mining = 0 # 1 = activé, 0 = désactivé
+data_mining = 1 # 1 = activé, 0 = désactivé
 
 # activer la partie Clusterisation (le code du lutin)
 clusterisation = 1 # 1 = activé, 0 = désactivé
@@ -51,7 +51,8 @@ clusterisation = 1 # 1 = activé, 0 = désactivé
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
 csv_file_clean = "./flickr_data_clean.csv"
-csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
+# csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
+csv_file_clean_with_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean_with_csv.csv" # Pour windows
 
 #demander nettoyage des données
 data_to_clean = 0 # 0 : don't clean, 1 : clean
@@ -306,11 +307,12 @@ def applied_DBscan(best_eps, best_min_samples):
     silhouette(clustering_algo, best_labels, n_clusters, data)
 
 # Création de la carte
-def creer_map(algo, my_map, liste_color):
-    for i in range(len(data_cluster)):
-        # if data.at[i,'cluster ' + algo] == -1:
-        #     continue
-        folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
+def creer_map(algo, my_map, liste_color, csv_file):
+    data = pd.read_table(csv_file, sep=",", low_memory=False)
+    for i in range(len(data)):
+        if data.at[i,'cluster ' + algo] == -1:
+            continue
+        folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"temporal_cluster"], popup=data.at[i,"important_words"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
     my_map.save(algo + "_map.html")
 
 
@@ -401,10 +403,10 @@ def TF_IDF(csv_file_processed, nb_clusters, csv_file_tfidf):
         words_by_cluster[i] = {}
     for i in range(len(data)):
         for word in data.at[i, 'text']:
-            if word in words_by_cluster[data.at[i, 'cluster']]:
-                words_by_cluster[data.at[i, 'cluster']][word] += 1
+            if word in words_by_cluster[data.at[i, 'cluster dbscan']]:
+                words_by_cluster[data.at[i, 'cluster dbscan']][word] += 1
             else:
-                words_by_cluster[data.at[i, 'cluster']][word] = 1
+                words_by_cluster[data.at[i, 'cluster dbscan']][word] = 1
 
     # On calcule le TF-IDF pour chaque mot
     tf_idf = {}
@@ -412,9 +414,9 @@ def TF_IDF(csv_file_processed, nb_clusters, csv_file_tfidf):
         tf_idf[i] = {}
     for i in range(len(data)):
         for word in data.at[i, 'text']:
-            tf = words_by_cluster[data.at[i, 'cluster']][word] / len(data)
+            tf = words_by_cluster[data.at[i, 'cluster dbscan']][word] / len(data)
             idf = len(data) / words[word]
-            tf_idf[data.at[i, 'cluster']][word] = tf * idf
+            tf_idf[data.at[i, 'cluster dbscan']][word] = tf * idf
         data.at[i, 'text'] = ' '.join(data.at[i, 'text'])
 
     # On affiche les mots les plus importants pour chaque cluster
@@ -424,7 +426,7 @@ def TF_IDF(csv_file_processed, nb_clusters, csv_file_tfidf):
 
     # On ajoute une colonne pour chaque ligne avec les 10 mots les plus importants du cluster auquel elle appartient
     for i in range(len(data)):
-        data.at[i, 'important_words'] = ' '.join(sorted(tf_idf[data.at[i, 'cluster']], key=tf_idf[data.at[i, 'cluster']].get, reverse=True)[:10])
+        data.at[i, 'important_words'] = ' '.join(sorted(tf_idf[data.at[i, 'cluster dbscan']], key=tf_idf[data.at[i, 'cluster dbscan']].get, reverse=True)[:10])
 
     # On met les données dans un fichier csv
     data.to_csv(csv_file_tfidf, index=False, sep=",")
@@ -449,10 +451,10 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
     for i in range(nb_clusters):
         dates[i] = {'min': None, 'max': None}
     for i in range(len(data)):
-        if dates[data.at[i, 'cluster']]['min'] is None or data.at[i, 'date'] < dates[data.at[i, 'cluster']]['min']:
-            dates[data.at[i, 'cluster']]['min'] = data.at[i, 'date']
-        if dates[data.at[i, 'cluster']]['max'] is None or data.at[i, 'date'] > dates[data.at[i, 'cluster']]['max']:
-            dates[data.at[i, 'cluster']]['max'] = data.at[i, 'date']
+        if dates[data.at[i, 'cluster dbscan']]['min'] is None or data.at[i, 'date'] < dates[data.at[i, 'cluster dbscan']]['min']:
+            dates[data.at[i, 'cluster dbscan']]['min'] = data.at[i, 'date']
+        if dates[data.at[i, 'cluster dbscan']]['max'] is None or data.at[i, 'date'] > dates[data.at[i, 'cluster dbscan']]['max']:
+            dates[data.at[i, 'cluster dbscan']]['max'] = data.at[i, 'date']
 
     # On affiche les dates min et max pour chaque cluster
     # for i in range(nb_clusters):
@@ -464,7 +466,7 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
     # Si la différence est très grande (arbitrairement plus de 1 mois), cela signifie que c'est un cluster temporel permanent
     # On ajoute donc une autre colonne pour chaque cluster qui indique si c'est un cluster temporel ponctuel ou permanent
     for i in range(len(data)):
-        if (dates[data.at[i, 'cluster']]['max'] - dates[data.at[i, 'cluster']]['min']).days > 7:
+        if (dates[data.at[i, 'cluster dbscan']]['max'] - dates[data.at[i, 'cluster dbscan']]['min']).days > 7:
             data.at[i, 'temporal_cluster'] = 'permanent'
         else:
             data.at[i, 'temporal_cluster'] = 'ponctuel'
@@ -472,7 +474,7 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
     # On affiche pour chaque cluster si il est temporel ponctuel ou permanent
     # for i in range(nb_clusters):
     #     print("Cluster", i)
-    #     print(data[data['cluster'] == i]['temporal_cluster'].value_counts())
+    #     print(data[data['cluster dbscan'] == i]['temporal_cluster'].value_counts())
     
     # On met les données dans un fichier csv
     data.to_csv(csv_file_temporel, index=False, sep=",")
@@ -572,8 +574,6 @@ if (clusterisation==1):
         # find_optimal_eps(scaled_data, min_pnts)
         applied_DBscan(best_eps,best_min_samples)
 
-        plt.show()
-
         
     # Apply DBSCAN with best parameters
     # best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
@@ -585,6 +585,29 @@ if (clusterisation==1):
     # print(f"Number of noise points: {n_noise}")
     # data['cluster dbscan'] = best_labels
     # silhouette(clustering_algo, best_labels, n_clusters)
+
+    
+
+    
+if (data_mining == 1):
+    ##############################
+    # Description des zones d'intérêt en utilisant des techniques de text mining
+    ##############################
+
+    # Preprocessing des données
+
+    # csv_file_processed = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed.csv"
+    csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
+
+    after_clustering = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean_with_csv.csv"
+    preprocessing(after_clustering, csv_file_processed_sample)
+    wordcloud(csv_file_processed_sample)
+
+    csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
+    TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
+
+    csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_temporel.csv"
+    analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
 
     ##############################
     #AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
@@ -604,33 +627,8 @@ if (clusterisation==1):
         creer_map('hierarchical complete')
 
     else:
-        creer_map(clustering_algo, my_map, liste_color)
+        creer_map(clustering_algo, my_map, liste_color, csv_file_temporel)
 
-    #afficher tous les schémas
-    plt.show()
+#afficher tous les schémas
+plt.show()
 
-    
-if (data_mining == 1):
-    ##############################
-    # Description des zones d'intérêt en utilisant des techniques de text mining
-    ##############################
-
-    # Preprocessing des données
-
-    csv_file_processed = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed.csv"
-    csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
-
-    # preprocessing("C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean-SAMPLE.csv", csv_file_processed_sample)
-    # wordcloud(csv_file_processed_sample)
-
-    csv_file_processed_sample_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE_fake_clusters.csv"
-    csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
-    TF_IDF(csv_file_processed_sample_cluster, 3, csv_file_tfidf)
-
-    csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_temporel.csv"
-    analyse_temporelle(csv_file_tfidf, 3, csv_file_temporel)
-    # TF_IDF(csv_file_processed_sample_cluster, 3)
-
-    analyse_temporelle(csv_file_processed_sample_cluster, 3)
-
-print(nb_cluster_current)
