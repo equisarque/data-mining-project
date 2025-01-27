@@ -25,7 +25,6 @@ from sklearn.preprocessing import StandardScaler
 # Librairies pour le text mining
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
-from gensim.utils import tokenize
 from nltk.probability import FreqDist
 from nltk.corpus import wordnet
 from nltk.stem import WordNetLemmatizer
@@ -141,6 +140,8 @@ def silhouette(current_algo, labels, n_clusters):
         current_algo = "hierarchical single"
     elif (current_algo == "complete"):
         current_algo = "hierarchical complete"
+
+    print(data_cluster)
 
     silhouette_avg = silhouette_score(data_cluster, labels, metric='euclidean')
     sample_silhouette_values = silhouette_samples(data_cluster, labels, metric='euclidean')
