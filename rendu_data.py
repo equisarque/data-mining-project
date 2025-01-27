@@ -35,8 +35,8 @@ import matplotlib.pyplot as plt
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
 csv_file_clean = "./flickr_data_cleaned.csv"
-# csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
-csv_file_clean_with_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean_with_csv.csv" # Pour windows
+csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
+#csv_file_clean_with_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean_with_csv.csv" # Pour windows
 
 #demander nettoyage des données
 data_to_clean = 0 # 0 : don't clean, 1 : clean
@@ -47,8 +47,8 @@ nb_line = 500
 
 # choisir l'algorithme de clusterisation
 
-#clustering_algo = "kmeans"
-clustering_algo = "hierarchical all_linkage"
+clustering_algo = "kmeans"
+#clustering_algo = "hierarchical all_linkage"
 #clustering_algo = "hierarchical average"
 #clustering_algo = "hierarchical single"
 #clustering_algo = "hierarchical complete"
@@ -195,11 +195,12 @@ def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cl
 
 # Définition de K-means
 def k_means():
-    kmeans = KMeans(n_clusters=6, init='k-means++')
+    kmeans = KMeans(n_clusters=100, init='k-means++')
     kmeans.fit(data_cluster)
     labels = kmeans.labels_
     data['cluster kmeans'] = labels
-    silhouette(clustering_algo, 6, data)
+    elbow_method()
+    silhouette(clustering_algo, 100, data)
 
 # Affichage de Hierarchical Clustering
 def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_title='coordinates', **kwargs):
