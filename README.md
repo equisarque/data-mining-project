@@ -14,3 +14,20 @@ La tokenization est donc inutile pour ce dataset en particulier.
 
 
 
+# présentation
+
+1) on montre le fichier code de moodle flickr_data2.csv
+
+2) on parle du clean on montre les fcts
+
+3) on montre le fichier : flickr_data_cleaned.csv
+
+on fait la partie cluster avec les cartes
+
+4) partie data mainig avec dbscan, on monte flickr_data_clustered.csv
+
+5) montre toutes les fcts et à chaque fois le bout du fichier final concerné flickr_data_final.csv
+
+6) on créer la map final avec le fichier final
+
+7) zoom sur dbscan
