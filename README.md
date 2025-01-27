@@ -14,6 +14,12 @@ La tokenization est donc inutile pour ce dataset en particulier.
 
 
 
+# resultat théoroqieu
+
+k means elbow : 8 mais pas 8 point d'interet, 100 a l'air pas mal, on obtient 512, pas ouf
+
+
+
 # présentation
 
 1) on montre le fichier code de moodle flickr_data2.csv

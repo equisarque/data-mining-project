@@ -31,11 +31,6 @@ from nltk.stem import WordNetLemmatizer
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# TO DO #
-# DBSCAN
-# HIERARCHICAL
-# SAMPLE SUR UNE ZONE GÉO
-# AVANT LE RENDU : SUPPRIMER "# vérifier qu'on a bien les bons résultats en passant par silouhette"
 
 
 #########################
@@ -43,32 +38,32 @@ import matplotlib.pyplot as plt
 #########################
 
 # activer la partie Data Mining (le code de la Fougère)
-data_mining = 1 # 1 = activé, 0 = désactivé
+data_mining = 0 # 1 = activé, 0 = désactivé
 
 # activer la partie Clusterisation (le code du lutin)
-clusterisation = 0 # 1 = activé, 0 = désactivé
+clusterisation = 1 # 1 = activé, 0 = désactivé
 
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
 csv_file_clean = "./flickr_data_clean.csv"
-# csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
-csv_file_clean_with_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean_with_csv.csv" # Pour windows
+csv_file_clean_with_cluster = "./flickr_data_clustered.csv"
+#csv_file_clean_with_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clustered.csv" # Pour windows
 
 #demander nettoyage des données
 data_to_clean = 0 # 0 : don't clean, 1 : clean
 #/!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
 
 # choisir le nombres de ligne aléatoire du fichier, 0 = toutes les lignes
-nb_line = 500
+nb_line = 0
 
 # choisir l'algorithme de clusterisation
 
-#clustering_algo = "kmeans"
-# clustering_algo = "hierarchical all_linkage"
+clustering_algo = "kmeans"
+#clustering_algo = "hierarchical all_linkage"
 #clustering_algo = "hierarchical average"
 #clustering_algo = "hierarchical single"
 #clustering_algo = "hierarchical complete"
-clustering_algo = "dbscan"
+#clustering_algo = "dbscan"
 
 #ne pas manipuler
 nb_cluster_current = 0
@@ -148,6 +143,9 @@ def silhouette(current_algo, n_clusters, data):
     nb_cluster_current = n_clusters
 
     new_data, new_labels, data_cluster_new = clean_data_without_cluster(data, current_algo)
+    # print(new_labels)
+    # print(new_data)
+    # print(data_cluster_new)
 
     silhouette_avg = silhouette_score(data_cluster_new, new_labels, metric='euclidean')
     sample_silhouette_values = silhouette_samples(data_cluster_new, new_labels, metric='euclidean')
@@ -166,7 +164,6 @@ def clean_data_without_cluster(data, current_algo):
     data_cluster_new = new_data[['lat','long']]
     new_labels = new_data['cluster ' + current_algo]
     new_data.to_csv(csv_file_clean_with_cluster, index=False, sep=",")
-
     return new_data, new_labels, data_cluster_new
 
 # Affichage du silhouette plot 
@@ -206,11 +203,13 @@ def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cl
 
 # Définition de K-means
 def k_means():
-    kmeans = KMeans(n_clusters=6, init='k-means++')
+    global data
+    kmeans = KMeans(n_clusters=80, init='k-means++')
     kmeans.fit(data_cluster)
     labels = kmeans.labels_
     data['cluster kmeans'] = labels
-    silhouette(clustering_algo, 6, data)
+    elbow_method()
+    silhouette(clustering_algo, 80, data)
 
 # Affichage de Hierarchical Clustering
 def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_title='coordinates', **kwargs):
@@ -268,7 +267,7 @@ def choosing_linkage():
         linkage = ['complete', 'average', 'single']
 
     for link in linkage:
-        m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=6, dist_thres=None)
+        m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=125, dist_thres=None)
         labels = m.labels_
         data['cluster hierarchical ' + link] = m.labels_
         silhouette(link, 6, data)
@@ -297,6 +296,7 @@ def find_optimal_eps(data, min_pts):
     plt.ylabel(f'Distance to {min_pts}th nearest neighbor')
 
 def applied_DBscan(best_eps, best_min_samples):
+    global data
     # Apply DBSCAN with best parameters
     best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
     best_labels = best_dbscan.fit_predict(scaled_data)
@@ -477,6 +477,30 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
     # On met les données dans un fichier csv
     data.to_csv(csv_file_temporel, index=False, sep=",")
 
+def elbow_method():
+            # range of k
+            range_k = range(1, 50)
+            # a list of intertia scores
+            inertias = []
+
+            # vary k and apply k-means
+            for i in range_k:
+                # apply k-means with i clusters
+                kmeans = KMeans(n_clusters=i, init='k-means++')
+                # fit data 
+                kmeans.fit(data_cluster)
+                # append inertia to the list
+                inertias.append(kmeans.inertia_)
+
+            # visualise
+            n = len(inertias)
+            xticks_new = np.arange(1, n+1)
+            plt.plot(xticks_new, inertias[0:n], 'bx-')
+            plt.title('Finding the optimal number of clusters')
+            plt.xlabel('# clusters')
+            plt.ylabel('Sum of squared distances')
+
+        #finding the good number of cluster with elbow, result = 6
 
 #################
 # Préparer data #
@@ -512,30 +536,6 @@ if (clusterisation==1):
     #k-means#
     #########
     if (clustering_algo == "kmeans"):
-        def elbow_method():
-            # range of k
-            range_k = range(1, 50)
-            # a list of intertia scores
-            inertias = []
-
-            # vary k and apply k-means
-            for i in range_k:
-                # apply k-means with i clusters
-                kmeans = KMeans(n_clusters=i, init='k-means++')
-                # fit data 
-                kmeans.fit(data_cluster)
-                # append inertia to the list
-                inertias.append(kmeans.inertia_)
-
-            # visualise
-            n = len(inertias)
-            xticks_new = np.arange(1, n+1)
-            plt.plot(xticks_new, inertias[0:n], 'bx-')
-            plt.title('Finding the optimal number of clusters')
-            plt.xlabel('# clusters')
-            plt.ylabel('Sum of squared distances')
-
-        #finding the good number of cluster with elbow, result = 6
         k_means()
     
     #########################
@@ -581,7 +581,7 @@ if (data_mining == 1):
     csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
 
     # preprocessing(csv_file_clean_with_cluster, csv_file_processed_sample)
-    wordcloud(csv_file_processed_sample)
+    #wordcloud(csv_file_processed_sample)
 
     csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
     # TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)

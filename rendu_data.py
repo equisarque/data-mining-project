@@ -197,9 +197,11 @@ def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cl
 # Définition de K-means
 def k_means():
     kmeans = KMeans(n_clusters=100, init='k-means++')
+    kmeans = KMeans(n_clusters=100, init='k-means++')
     kmeans.fit(data_cluster)
     labels = kmeans.labels_
     data['cluster kmeans'] = labels
+    elbow_method()
     silhouette(clustering_algo, 100, data)
 
 # Affichage de Hierarchical Clustering
