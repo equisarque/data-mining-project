@@ -1,60 +1,61 @@
 # Datamining Project Joris FELZINES - Guillaume MANTZARIDES
 
-#dependencies for displaying map
+import os
+
+# Imports pour montrer la carte
 import folium
 import pandas as pd
 import matplotlib.pyplot as plt
-#import seaborn as sns
-import plotly.express as px 
 
-#import cluster
-#k-means
+# Imports pour k-means
 from sklearn.cluster import KMeans
 import numpy as np
-#hierarchical cluster
+# Imports pour hierarchical clustering
 from scipy.cluster.hierarchy import dendrogram
 from sklearn.cluster import AgglomerativeClustering
-# silhouette scores
+# Imports pour silhouette score
 from sklearn.metrics import silhouette_score, silhouette_samples
-# DBSCAN
+# Imports pour DBScan
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import DBSCAN
-# scaler
+# Imports pour le preprocessing des données
 from sklearn.preprocessing import StandardScaler
 
-# Librairies pour le text mining
+# Imports pour le text mining
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-#########################
-#CONFIGURER LE PROGRAMME#
-#########################
+##############################
+# CONFIGURATION DU PROGRAMME #
+##############################
 
-#indiquer position fichier
-csv_file = "./flickr_data_clean.csv"
-csv_file_clean = "./flickr_data_cleaned.csv"
-# csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
-csv_file_clean_with_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean_with_csv.csv" # Pour windows
+# assert pour vérifier que flickr_data2.csv est bien dans le répertoire
+assert "flickr_data2.csv" in os.listdir(), "flickr_data2.csv n'est pas dans le répertoire"
 
-#demander nettoyage des données
-data_to_clean = 0 # 0 : don't clean, 1 : clean
-#/!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
+# Indiquer position fichier
+csv_file = "./flickr_data2.csv"
+csv_file_clean = "./flickr_data_clean.csv"
+csv_file_clean_with_cluster = "./flickr_data_clustered.csv"
 
-# choisir le nombres de ligne aléatoire du fichier, 0 = toutes les lignes
+# Pour effectuer le nettoyage des données (1 pour nettoyer, 0 pour ne pas nettoyer)
+# /!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
+data_to_clean = 0 
+
+# Choix du nombres de lignes aléatoires à prendre (0 pour tout prendre)
 nb_line = 500
 
-# choisir l'algorithme de clusterisation
+# Choix de l'algorithme de clusterisation (1 seul à la fois):
 
-#clustering_algo = "kmeans"
-clustering_algo = "hierarchical all_linkage"
-#clustering_algo = "hierarchical average"
-#clustering_algo = "hierarchical single"
-#clustering_algo = "hierarchical complete"
-#clustering_algo = "dbscan"
+clustering_algo = "kmeans"
+# clustering_algo = "hierarchical all_linkage"
+# clustering_algo = "hierarchical average"
+# clustering_algo = "hierarchical single"
+# clustering_algo = "hierarchical complete"
+# clustering_algo = "dbscan" # /!\ nb_line doit être > 10000 pour dbscan
 
-#ne pas manipuler
+# Variable globale nécessaire pour la partie data mining
 nb_cluster_current = 0
 
 #####################
@@ -195,11 +196,11 @@ def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cl
 
 # Définition de K-means
 def k_means():
-    kmeans = KMeans(n_clusters=6, init='k-means++')
+    kmeans = KMeans(n_clusters=100, init='k-means++')
     kmeans.fit(data_cluster)
     labels = kmeans.labels_
     data['cluster kmeans'] = labels
-    silhouette(clustering_algo, 6, data)
+    silhouette(clustering_algo, 100, data)
 
 # Affichage de Hierarchical Clustering
 def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_title='coordinates', **kwargs):
@@ -253,10 +254,10 @@ def choosing_linkage():
         linkage = ['complete', 'average', 'single']
 
     for link in linkage:
-        m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=6, dist_thres=None)
+        m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=125, dist_thres=None)
         labels = m.labels_
         data['cluster hierarchical ' + link] = m.labels_
-        silhouette(link, 6, data)
+        silhouette(link, 125, data)
 
 # Définition de DBSCAN
 def find_optimal_eps(data, min_pts):
@@ -277,6 +278,7 @@ def applied_DBscan(best_eps, best_min_samples):
     # Applique DBscan avec les meilleurs paramètres
     best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
     best_labels = best_dbscan.fit_predict(scaled_data)
+    global data
     data['cluster dbscan'] = best_labels
     n_clusters = len(set(best_labels)) - (1 if -1 in best_labels else 0)
     silhouette(clustering_algo, n_clusters, data)
@@ -287,7 +289,11 @@ def creer_map(algo, my_map, liste_color, csv_file):
     for i in range(len(data)):
         if data.at[i,'cluster ' + algo] == -1:
             continue
-        folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"temporal_cluster"], popup=data.at[i,"important_words"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
+        if clustering_algo == "dbscan":
+            csv_file = "./flickr_data_final.csv"
+            folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"temporal_cluster"], popup=data.at[i,"important_words"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
+        else:
+            folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
     my_map.save(algo + "_map.html")
 
 
@@ -444,11 +450,8 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
 
 if (data_to_clean == 1):
     cleaning(csv_file, csv_file_clean)
-    file_to_read = csv_file_clean
-else:
-    file_to_read = csv_file
 
-data = pd.read_table(file_to_read, sep=",", low_memory=False)
+data = pd.read_table(csv_file_clean, sep=",", low_memory=False)
 
 if (nb_line == 0):
     pass
@@ -458,7 +461,7 @@ else:
     data = random_data.reset_index(drop=True)
 
 #supprime les colonnes excepté long and lat
-data_cluster = data.drop(columns=["id","user","tags","title","date_taken_minute","date_taken_hour","date_taken_day","date_taken_month","date_taken_year"])
+data_cluster = data[['lat','long']]
 
 # Rééchelonne les données
 scaler = StandardScaler()
@@ -516,18 +519,21 @@ elif (clustering_algo == "dbscan"):
 #Description des zones d'intérêt en utilisant des techniques de text mining#
 ############################################################################
 
-# Preprocessing des données
-after_clustering = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clustered.csv"
-csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
+csv_file_temporel = "./flickr_data_final.csv"
+csv_file_tfidf = "./flickr_data_tfidf.csv"
+after_clustering = "./flickr_data_clustered.csv"
+csv_file_processed_sample = "./flickr_data_processed-SAMPLE.csv"
 
-preprocessing(after_clustering, csv_file_processed_sample)
-wordcloud(csv_file_processed_sample)
+if clustering_algo == "dbscan":
 
-csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
-TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
+    # Preprocessing des données
+    preprocessing(after_clustering, csv_file_processed_sample)
 
-csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_final.csv"
-analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
+    wordcloud(csv_file_processed_sample)
+
+    TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
+
+    analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
 
 ##############################
 #AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
@@ -542,12 +548,11 @@ liste_color = [
 ]
 
 if (clustering_algo == "hierarchical all_linkage"):
-    creer_map('hierarchical average', my_map, liste_color)
-    creer_map('hierarchical single', my_map, liste_color)
-    creer_map('hierarchical complete', my_map, liste_color)
-
+    creer_map('hierarchical average', my_map, liste_color, csv_file_clean_with_cluster)
+    creer_map('hierarchical single', my_map, liste_color, csv_file_clean_with_cluster)
+    creer_map('hierarchical complete', my_map, liste_color, csv_file_clean_with_cluster)
 else:
-    creer_map(clustering_algo, my_map, liste_color, csv_file_temporel)
+    creer_map(clustering_algo, my_map, liste_color, csv_file_clean_with_cluster)
 
 #afficher tous les schémas
 plt.show()

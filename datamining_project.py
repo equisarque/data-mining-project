@@ -147,8 +147,6 @@ def silhouette(current_algo, n_clusters, data):
         current_algo = "hierarchical complete"
     nb_cluster_current = n_clusters
 
-
-
     new_data, new_labels, data_cluster_new = clean_data_without_cluster(data, current_algo)
 
     silhouette_avg = silhouette_score(data_cluster_new, new_labels, metric='euclidean')
