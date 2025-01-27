@@ -4,7 +4,8 @@
 import folium
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+#import seaborn as sns
+import plotly.express as px 
 
 #import cluster
 #k-means
@@ -16,6 +17,7 @@ from sklearn.cluster import AgglomerativeClustering
 # silhouette scores
 from sklearn.metrics import silhouette_score, silhouette_samples
 # DBSCAN
+from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import DBSCAN
 # scaler
 from sklearn.preprocessing import StandardScaler
@@ -55,7 +57,7 @@ data_to_clean = 0 # 0 : don't clean, 1 : clean
 #/!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
 
 # choisir le nombres de ligne aléatoire du fichier, 0 = toutes les lignes
-nb_line = 500
+nb_line = 30000
 
 # choisir l'algorithme de clusterisation
 
@@ -66,9 +68,9 @@ nb_line = 500
 #clustering_algo = "hierarchical complete"
 clustering_algo = "dbscan"
 
-#########################
-#Liste des Fonctions    #
-#########################
+#####################
+#Liste des Fonctions#
+#####################
 
 # Fonction de nettoyage des données
 def cleaning(csv_file, csv_file_clean):
@@ -265,60 +267,34 @@ def choosing_linkage():
         #print(data[['silhouette TRUE hierarchical ' + link, 'silhouette hierarchical ' + link]])
 
 # Définition de DBSCAN
-def recherche_opti():
-    eps_range = np.arange(0.01, 3, 0.01)
-    min_samples_range = range(2, 11)
+def find_optimal_eps(data, min_pts):
+    # Calculate distances to k-nearest neighbors
+    neigh = NearestNeighbors(n_neighbors=min_pts)
+    neigh.fit(data)
+    distances, _ = neigh.kneighbors(data)
+    
+    # Sort distances to kth neighbor in ascending order
+    k_distances = np.sort(distances[:, min_pts-1])
 
-    # Store results
-    best_score = -1
-    best_eps = None
-    best_min_samples = None
-    scores = []
+    # Create plot
+    plt.plot(range(len(k_distances)), k_distances)
+    plt.xlabel('Points sorted by distance')
+    plt.ylabel(f'Distance to {min_pts}th nearest neighbor')
 
-    #Grid search
-    for eps in eps_range:
-        for min_samples in min_samples_range:
-            # Fit DBSCAN
-            dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-            labels = dbscan.fit_predict(data_cluster)
-            print(labels)
-            # Skip if all points are noise (-1)
-            if len(np.unique(labels)) < 2 or -1 in labels:
-                continue
-
-            # Calculate silhouette score
-            score = silhouette_score(data_cluster, labels)
-            scores.append({'eps': eps, 'min_samples': min_samples, 'score': score})
-            # Update best parameters if score is better
-            if score > best_score:
-                best_score = score
-                best_eps = eps
-                best_min_samples = min_samples
-
-    # Convert scores to DataFrame for easier analysis
-    scores_df = pd.DataFrame(scores)
-    print(scores_df)
-    print(f"Best score = {best_score}, best_eps = {best_eps}, best_min_samples = {min_samples}")
-
-    # Plot results
-    plt.figure(figsize=(12, 6))
-    for min_samples in min_samples_range:
-        mask = scores_df['min_samples'] == min_samples
-        plt.plot(scores_df[mask]['eps'], 
-                scores_df[mask]['score'], 
-                'o-', 
-                label=f'min_samples={min_samples}')
-
-    plt.xlabel('Epsilon')
-    plt.ylabel('Silhouette Score')
-    plt.title('DBSCAN Parameters Optimization')
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
-    plt.tight_layout()
-    plt.show()
+def applied_DBscan(best_eps, best_min_samples):
+    # Apply DBSCAN with best parameters
+    best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
+    best_labels = best_dbscan.fit_predict(scaled_data)
+    data['cluster dbscan'] = best_labels
+    n_clusters = len(set(best_labels)) - (1 if -1 in best_labels else 0)
+    silhouette(clustering_algo, best_labels, n_clusters)
+    data['silhouette dbscan'] = silhouette_samples(scaled_data, best_labels, metric='euclidean')
 
 # Création de la carte
 def creer_map(algo, my_map, liste_color):
     for i in range(len(data_cluster)):
+        if data.at[i,'cluster ' + algo] == -1:
+            continue
         folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
     my_map.save(algo + "_map.html")
 
@@ -481,7 +457,6 @@ if (clusterisation==1):
     #########
     #k-means#
     #########
-
     if (clustering_algo == "kmeans"):
         def elbow_method():
             # range of k
@@ -520,8 +495,16 @@ if (clusterisation==1):
     #DBScan#
     ########
     elif (clustering_algo == "dbscan"):
-        recherche_opti()
+        best_eps = 0.008
+        best_min_samples = 10
+        #find best parameter
+        # min_pnts = 15 # on trouve 0,25
+        # find_optimal_eps(scaled_data, min_pnts)
+        applied_DBscan(best_eps,best_min_samples)
 
+        plt.show()
+
+        
     # Apply DBSCAN with best parameters
     # best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
     # best_labels = best_dbscan.fit_predict(scaled_data)
@@ -537,21 +520,21 @@ if (clusterisation==1):
     #AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
     ##############################
 
-    # my_map = folium.Map(location=(45.75, 4.83))
-    # liste_color = [
-    #     "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
-    #     "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black", "BlanchedAlmond", "Blue",
-    #     "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse", "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson",
-    #     "Cyan"
-    # ]
+    my_map = folium.Map(location=(45.75, 4.83))
+    liste_color = [
+        "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
+        "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black", "BlanchedAlmond", "Blue",
+        "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse", "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson",
+        "Cyan"
+    ]
 
-    # if (clustering_algo == "hierarchical all_linkage"):
-    #     creer_map('hierarchical average')
-    #     creer_map('hierarchical single')
-    #     creer_map('hierarchical complete')
+    if (clustering_algo == "hierarchical all_linkage"):
+        creer_map('hierarchical average')
+        creer_map('hierarchical single')
+        creer_map('hierarchical complete')
 
-    # else:
-    #     creer_map(clustering_algo, my_map, liste_color)
+    else:
+        creer_map(clustering_algo, my_map, liste_color)
 
     #afficher tous les schémas
     plt.show()
