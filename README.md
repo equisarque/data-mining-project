@@ -8,3 +8,9 @@
 
 La tokenization est inefficace pour les tags et title car les mots sont souvent collés les uns aux autres, et il n'y a pas de ponctuation, verbes, etc.
 La tokenization est donc inutile pour ce dataset en particulier.
+# on a utilisé fourvière pour savoir quelle était le bon epsilon
+
+# il faudrait essayer de faire un DBSCAN récursif pour couper les gros cluster
+
+
+
