@@ -28,22 +28,9 @@ from nltk.tokenize import word_tokenize
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# TO DO #
-# DBSCAN
-# HIERARCHICAL
-# SAMPLE SUR UNE ZONE GÉO
-# AVANT LE RENDU : SUPPRIMER "# vérifier qu'on a bien les bons résultats en passant par silouhette"
-
-
 #########################
 #CONFIGURER LE PROGRAMME#
 #########################
-
-# activer la partie Data Mining (le code de la Fougère)
-data_mining = 1 # 1 = activé, 0 = désactivé
-
-# activer la partie Clusterisation (le code du lutin)
-clusterisation = 1 # 1 = activé, 0 = désactivé
 
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
@@ -142,21 +129,24 @@ def silhouette(current_algo, n_clusters, data):
         current_algo = "hierarchical single"
     elif (current_algo == "complete"):
         current_algo = "hierarchical complete"
+    
+    #indication pour la partie data mining
     nb_cluster_current = n_clusters
 
-
-
+    #retrait des lignes contenant des points présents dans aucun cluster
     new_data, new_labels, data_cluster_new = clean_data_without_cluster(data, current_algo)
 
     silhouette_avg = silhouette_score(data_cluster_new, new_labels, metric='euclidean')
     sample_silhouette_values = silhouette_samples(data_cluster_new, new_labels, metric='euclidean')
     new_data['silhouette ' + current_algo] = sample_silhouette_values
 
-    # silhouette per cluster
+    # silhouette score par cluster
     data_by_cluster = new_data.groupby('cluster '+ current_algo)['silhouette ' + current_algo].mean()
-    # number of elements per cluster
+    
+    # nombre d'élément par cluster
     nb_by_cluster = new_data['cluster ' + current_algo].value_counts()
 
+    #affiche le graphique lié aux silhouettes scores
     plot_silhouette(sample_silhouette_values, silhouette_avg, new_labels, data_by_cluster, n_clusters, nb_by_cluster, current_algo)
 
 def clean_data_without_cluster(data, current_algo):
@@ -175,28 +165,28 @@ def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cl
     
     y_lower = 10
     for i in range(n_clusters):
-        # Get silhouette scores for cluster i
+        # Récupérer le score pour le cluster i
         ith_cluster_values = sample_silhouette_values[labels == i]
         ith_cluster_values.sort()
         
         size_cluster_i = ith_cluster_values.shape[0]
         y_upper = y_lower + size_cluster_i
         
-        # Fill the silhouette
+        # Remplissage de la silhouette
         plt.fill_betweenx(np.arange(y_lower, y_upper),
                         0, ith_cluster_values,
                         alpha=0.7)
         
-        # Label the silhouette plots
-        plt.text(-0.05, y_lower + 0.5 * size_cluster_i, f'Cluster {i}, avg {data_by_cluster[i]:0.2f}, nb {nb_by_cluster[i]}')
+        # Nommer l'affichage de la silhouette
+        plt.text(-0.05, y_lower + 0.5 * size_cluster_i, f'Cluster {i}, moy {data_by_cluster[i]:0.2f}, nb {nb_by_cluster[i]}')
         
         y_lower = y_upper + 10
     
-    # Add vertical line for average silhouette score
+    # Ajouter une ligne vertical pour le silhouette score moyen
     plt.axvline(x=silhouette_avg, color='red', linestyle='--', 
-                label=f'Average Silhouette: {silhouette_avg:.3f}')
+                label=f'Silhouette score moyen : {silhouette_avg:.3f}')
     
-    plt.title('Silhouette Plot - ' + current_algo)
+    plt.title('Silhouette affichage - ' + current_algo)
     plt.xlabel('Silhouette Coefficient')
     plt.ylabel('Cluster')
     plt.legend(loc='best')
@@ -213,9 +203,7 @@ def k_means():
 
 # Affichage de Hierarchical Clustering
 def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_title='coordinates', **kwargs):
-    # Create linkage matrix and then plot the dendrogram
 
-    # create the counts of samples under each node
     counts = np.zeros(model.children_.shape[0])
     n_samples = len(model.labels_)
     for i, merge in enumerate(model.children_):
@@ -235,7 +223,7 @@ def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_t
 
     fig = plt.figure(figsize=(12, 8))
     
-    # Plot the corresponding dendrogram
+    # Affiche le dendogramme associé
     dendrogram(linkage_matrix, labels=lbls, leaf_rotation=90)
     
     plt.title(title)
@@ -254,9 +242,7 @@ def hierarchical(data, labels, metric='euclidean', linkage='average', n_clusters
     
     return model, f
 
-
 def choosing_linkage():
-    
     if (clustering_algo == "hierarchical average"):
         linkage = ['average']
     elif (clustering_algo == "hierarchical single"):
@@ -271,32 +257,24 @@ def choosing_linkage():
         labels = m.labels_
         data['cluster hierarchical ' + link] = m.labels_
         silhouette(link, 6, data)
-        
-        # vérifier qu'on a bien les bons résultats en passant par silouhette
-        #silhouette_avg = silhouette_score(data_cluster, m.labels_, metric='euclidean')
-        #sample_silhouette_values = silhouette_samples(data_cluster, m.labels_, metric='euclidean')
-        #data['silhouette TRUE hierarchical ' + link] = sample_silhouette_values
-
-        #print(f"Linkage: {link}, silhouette score: {silhouette_avg}")
-        #print(data[['silhouette TRUE hierarchical ' + link, 'silhouette hierarchical ' + link]])
 
 # Définition de DBSCAN
 def find_optimal_eps(data, min_pts):
-    # Calculate distances to k-nearest neighbors
+    # calcul la distance avec le kième voisin le plus proche
     neigh = NearestNeighbors(n_neighbors=min_pts)
     neigh.fit(data)
     distances, _ = neigh.kneighbors(data)
     
-    # Sort distances to kth neighbor in ascending order
+    # trie les distances aux kième voisins
     k_distances = np.sort(distances[:, min_pts-1])
 
-    # Create plot
+    # Créer l'affichage
     plt.plot(range(len(k_distances)), k_distances)
     plt.xlabel('Points sorted by distance')
     plt.ylabel(f'Distance to {min_pts}th nearest neighbor')
 
 def applied_DBscan(best_eps, best_min_samples):
-    # Apply DBSCAN with best parameters
+    # Applique DBscan avec les meilleurs paramètres
     best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
     best_labels = best_dbscan.fit_predict(scaled_data)
     data['cluster dbscan'] = best_labels
@@ -463,133 +441,113 @@ def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
 #################
 # Préparer data #
 #################
-if (clusterisation==1):
 
-    if (data_to_clean == 1):
-        cleaning(csv_file, csv_file_clean)
-        file_to_read = csv_file_clean
-    else:
-        file_to_read = csv_file
+if (data_to_clean == 1):
+    cleaning(csv_file, csv_file_clean)
+    file_to_read = csv_file_clean
+else:
+    file_to_read = csv_file
 
-    data = pd.read_table(file_to_read, sep=",", low_memory=False)
+data = pd.read_table(file_to_read, sep=",", low_memory=False)
 
-    if (nb_line == 0):
-        pass
-    else:
-        # Randomly select nb_line rows
-        random_data = data.sample(n=nb_line, random_state=42)  # 'random_state' ensures reproducibility
-        # Optionally, reset the index
-        data = random_data.reset_index(drop=True)
+if (nb_line == 0):
+    pass
+else:
+    # Select aléatoirement un nombre de ligne
+    random_data = data.sample(n=nb_line, random_state=42)  # 'random_state' permet assure la reproductibilitée
+    data = random_data.reset_index(drop=True)
 
-    #drop column except long and lat
-    data_cluster = data.drop(columns=["id","user","tags","title","date_taken_minute","date_taken_hour","date_taken_day","date_taken_month","date_taken_year"])
+#supprime les colonnes excepté long and lat
+data_cluster = data.drop(columns=["id","user","tags","title","date_taken_minute","date_taken_hour","date_taken_day","date_taken_month","date_taken_year"])
 
-    # Scale the data
-    scaler = StandardScaler()
-    scaled_data = scaler.fit_transform(data_cluster)
-    # create a DataFrame
-    data_cluster = pd.DataFrame(data=scaled_data, columns=data_cluster.columns)
+# Rééchelonne les données
+scaler = StandardScaler()
+scaled_data = scaler.fit_transform(data_cluster)
+# create a DataFrame
+data_cluster = pd.DataFrame(data=scaled_data, columns=data_cluster.columns)
 
-    #########
-    #k-means#
-    #########
-    if (clustering_algo == "kmeans"):
-        def elbow_method():
-            # range of k
-            range_k = range(1, 50)
-            # a list of intertia scores
-            inertias = []
+#########
+#k-means#
+#########
+if (clustering_algo == "kmeans"):
+    def elbow_method():
+        # échelle de k
+        range_k = range(1, 50)
+        # list des scores d'inertie
+        inertias = []
 
-            # vary k and apply k-means
-            for i in range_k:
-                # apply k-means with i clusters
-                kmeans = KMeans(n_clusters=i, init='k-means++')
-                # fit data 
-                kmeans.fit(data_cluster)
-                # append inertia to the list
-                inertias.append(kmeans.inertia_)
+        # faire varier k et appliquer k-means
+        for i in range_k:
+            # appliquer k-means avec i cluster
+            kmeans = KMeans(n_clusters=i, init='k-means++')
+            kmeans.fit(data_cluster)
+            # rajouter l'inertie à la liste
+            inertias.append(kmeans.inertia_)
 
-            # visualise
-            n = len(inertias)
-            xticks_new = np.arange(1, n+1)
-            plt.plot(xticks_new, inertias[0:n], 'bx-')
-            plt.title('Finding the optimal number of clusters')
-            plt.xlabel('# clusters')
-            plt.ylabel('Sum of squared distances')
+        # visualiser
+        n = len(inertias)
+        xticks_new = np.arange(1, n+1)
+        plt.plot(xticks_new, inertias[0:n], 'bx-')
+        plt.title('Finding the optimal number of clusters')
+        plt.xlabel('# clusters')
+        plt.ylabel('Sum of squared distances')
 
-        #finding the good number of cluster with elbow, result = 6
-        k_means()
-    
-    #########################
-    #Hierarchical Clustering#
-    #########################
-    elif (clustering_algo == "hierarchical average" or clustering_algo == "hierarchical single" or clustering_algo == "hierarchical complete" or clustering_algo == "hierarchical all_linkage"): 
-    # ILS FAUT RÉDUIRE LE NOMBRE DE POINT À UNE ZONE GÉOGRAPHIQUE RESTREINTE,CAR ÇA MARCHE PAS POUR TOUTES LES DATA ET COMPARER AVEC AUTRE ALGO
-        choosing_linkage()
-    
-    ########
-    #DBScan#
-    ########
-    elif (clustering_algo == "dbscan"):
-        best_eps = 0.008
-        best_min_samples = 10
-        #find best parameter
-        # min_pnts = 15 # on trouve 0,25
-        # find_optimal_eps(scaled_data, min_pnts)
-        applied_DBscan(best_eps,best_min_samples)
+    k_means()
 
-        
-    # Apply DBSCAN with best parameters
-    # best_dbscan = DBSCAN(eps=best_eps, min_samples=best_min_samples)
-    # best_labels = best_dbscan.fit_predict(scaled_data)
+#########################
+#Hierarchical Clustering#
+#########################
+elif (clustering_algo == "hierarchical average" or clustering_algo == "hierarchical single" or clustering_algo == "hierarchical complete" or clustering_algo == "hierarchical all_linkage"): 
+    choosing_linkage()
 
-    # n_clusters = len(set(best_labels)) - (1 if -1 in best_labels else 0)
-    # n_noise = list(best_labels).count(-1)
-    # print(f"\nNumber of clusters: {n_clusters}")
-    # print(f"Number of noise points: {n_noise}")
-    # data['cluster dbscan'] = best_labels
-    # silhouette(clustering_algo, best_labels, n_clusters)
+########
+#DBScan#
+########
+elif (clustering_algo == "dbscan"):
+    best_eps = 0.008
+    best_min_samples = 10
+    # #trouver le meilleur paramètre
+    # min_pnts = 15 # on trouve 0,25
+    # find_optimal_eps(scaled_data, min_pnts)
+    applied_DBscan(best_eps,best_min_samples)
 
-    
 
-    
-if (data_mining == 1):
-    ##############################
-    # Description des zones d'intérêt en utilisant des techniques de text mining
-    ##############################
+############################################################################
+#Description des zones d'intérêt en utilisant des techniques de text mining#
+############################################################################
 
-    # Preprocessing des données
-    after_clustering = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clustered.csv"
-    csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
+# Preprocessing des données
+after_clustering = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clustered.csv"
+csv_file_processed_sample = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE.csv"
 
-    preprocessing(after_clustering, csv_file_processed_sample)
-    wordcloud(csv_file_processed_sample)
+preprocessing(after_clustering, csv_file_processed_sample)
+wordcloud(csv_file_processed_sample)
 
-    csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
-    TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
+csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
+TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
 
-    csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_final.csv"
-    analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
+csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_final.csv"
+analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
 
-    ##############################
-    #AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
-    ##############################
+##############################
+#AFFICHER LA CARTE ET LES MARQUEURS, POUR LA VOIR L'OUVRIR À LA MAIN DANS UN NAVIGATEUR
+##############################
 
-    my_map = folium.Map(location=(45.75, 4.83))
-    liste_color = [
-        "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
-        "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black", "BlanchedAlmond", "Blue",
-        "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse", "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson",
-        "Cyan"
-    ]
+my_map = folium.Map(location=(45.75, 4.83))
+liste_color = [
+    "DarkBlue", "DarkCyan", "DarkGoldenRod", "DarkGray", "DarkGreen", "DarkKhaki", "DarkMagenta", "DarkOliveGreen", "DarkOrange",
+    "AliceBlue", "AntiqueWhite", "Aqua", "Aquamarine", "Azure", "Beige", "Bisque", "Black", "BlanchedAlmond", "Blue",
+    "BlueViolet", "Brown", "BurlyWood", "CadetBlue", "Chartreuse", "Chocolate", "Coral", "CornflowerBlue", "Cornsilk", "Crimson",
+    "Cyan"
+]
 
-    if (clustering_algo == "hierarchical all_linkage"):
-        creer_map('hierarchical average', my_map, liste_color)
-        creer_map('hierarchical single', my_map, liste_color)
-        creer_map('hierarchical complete', my_map, liste_color)
+if (clustering_algo == "hierarchical all_linkage"):
+    creer_map('hierarchical average', my_map, liste_color)
+    creer_map('hierarchical single', my_map, liste_color)
+    creer_map('hierarchical complete', my_map, liste_color)
 
-    else:
-        creer_map(clustering_algo, my_map, liste_color, csv_file_temporel)
+else:
+    creer_map(clustering_algo, my_map, liste_color, csv_file_temporel)
 
 #afficher tous les schémas
 plt.show()
