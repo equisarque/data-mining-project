@@ -74,62 +74,62 @@ clustering_algo = "dbscan"
 
 # Fonction de nettoyage des données
 def cleaning(csv_file, csv_file_clean):
-        data = pd.read_table(csv_file, sep=",", low_memory=False)
+    data = pd.read_table(csv_file, sep=",", low_memory=False)
 
-        # On supprime certaines colonnes, les dates d'upload et les 3 dernières colonnes quasiment vides car pas utiles pour l'analyse
-        data.drop(data.columns[[11,12,13,14,15,16,17,18]], axis=1, inplace=True)
+    # On supprime certaines colonnes, les dates d'upload et les 3 dernières colonnes quasiment vides car pas utiles pour l'analyse
+    data.drop(data.columns[[11,12,13,14,15,16,17,18]], axis=1, inplace=True)
 
-        # On renomme les colonnes avec des espaces
-        data.rename(columns={' user': 'user',
-                            ' lat': 'lat',
-                            ' long': 'long',
-                            ' tags': 'tags',
-                            ' title': 'title',
-                            ' date_taken_year': 'date_taken_year',
-                            ' date_taken_month': 'date_taken_month',
-                            ' date_taken_day': 'date_taken_day',
-                            ' date_taken_hour': 'date_taken_hour',
-                            ' date_taken_minute': 'date_taken_minute'} ,
-                            inplace=True)
+    # On renomme les colonnes avec des espaces
+    data.rename(columns={' user': 'user',
+                        ' lat': 'lat',
+                        ' long': 'long',
+                        ' tags': 'tags',
+                        ' title': 'title',
+                        ' date_taken_year': 'date_taken_year',
+                        ' date_taken_month': 'date_taken_month',
+                        ' date_taken_day': 'date_taken_day',
+                        ' date_taken_hour': 'date_taken_hour',
+                        ' date_taken_minute': 'date_taken_minute'} ,
+                        inplace=True)
 
-        # On supprime les duplicats
-        data.drop_duplicates(keep='first', inplace=True)
+    # On supprime les duplicats
+    data.drop_duplicates(keep='first', inplace=True)
 
-        # On supprime les lignes ou les valeurs manquantes dérangent
-        columns_to_check = ['id', 'user', 'lat', 'long', 'date_taken_year', 'date_taken_month', 'date_taken_day', 'date_taken_hour', 'date_taken_minute']
-        data.dropna(subset=columns_to_check, inplace=True)
+    # On supprime les lignes ou les valeurs manquantes dérangent
+    columns_to_check = ['id', 'user', 'lat', 'long', 'date_taken_year', 'date_taken_month', 'date_taken_day', 'date_taken_hour', 'date_taken_minute']
+    data.dropna(subset=columns_to_check, inplace=True)
 
-        # On remet les dates de prises de photos dans le bon sens
-        cols_to_shift = ['date_taken_minute', 'date_taken_hour', 'date_taken_day', 'date_taken_month', 'date_taken_year']
-        shifted_order_minute = cols_to_shift[1:] + cols_to_shift[:1]
-        shifted_order_hour = cols_to_shift[2:] + cols_to_shift[:2]
-        shifted_order_day = cols_to_shift[3:] + cols_to_shift[:3]
-        shifted_order_month = cols_to_shift[4:] + cols_to_shift[:4]
+    # On remet les dates de prises de photos dans le bon sens
+    cols_to_shift = ['date_taken_minute', 'date_taken_hour', 'date_taken_day', 'date_taken_month', 'date_taken_year']
+    shifted_order_minute = cols_to_shift[1:] + cols_to_shift[:1]
+    shifted_order_hour = cols_to_shift[2:] + cols_to_shift[:2]
+    shifted_order_day = cols_to_shift[3:] + cols_to_shift[:3]
+    shifted_order_month = cols_to_shift[4:] + cols_to_shift[:4]
 
-        # Pour chaque ligne, on vérifie si les valeurs sont cohérentes
-        for index, row in data.iterrows():
-            if row['date_taken_minute'] > 999:
-                data.loc[index, cols_to_shift] = row[shifted_order_minute].values
+    # Pour chaque ligne, on vérifie si les valeurs sont cohérentes
+    for index, row in data.iterrows():
+        if row['date_taken_minute'] > 999:
+            data.loc[index, cols_to_shift] = row[shifted_order_minute].values
 
-            if row['date_taken_hour'] > 999:
-                data.loc[index, cols_to_shift] = row[shifted_order_hour].values
+        if row['date_taken_hour'] > 999:
+            data.loc[index, cols_to_shift] = row[shifted_order_hour].values
 
-            if row['date_taken_day'] > 999:
-                data.loc[index, cols_to_shift] = row[shifted_order_day].values
+        if row['date_taken_day'] > 999:
+            data.loc[index, cols_to_shift] = row[shifted_order_day].values
 
-            if row['date_taken_month'] > 999:
-                data.loc[index, cols_to_shift] = row[shifted_order_month].values
+        if row['date_taken_month'] > 999:
+            data.loc[index, cols_to_shift] = row[shifted_order_month].values
 
-            if row['date_taken_year'] > 2025:
-                data.drop(index, inplace=True)
+        if row['date_taken_year'] > 2025:
+            data.drop(index, inplace=True)
 
-        # On convertit les minutes en int
-        data['date_taken_minute'] = data['date_taken_minute'].astype(int)
+    # On convertit les minutes en int
+    data['date_taken_minute'] = data['date_taken_minute'].astype(int)
 
-        # Mettre les données nettoyées dans un fichier csv
-        data.to_csv(csv_file_clean, index=False, sep=",")
+    # Mettre les données nettoyées dans un fichier csv
+    data.to_csv(csv_file_clean, index=False, sep=",")
 
-        return True
+    return True
 
 
 # Calcul du silhouette score
@@ -368,7 +368,7 @@ def wordcloud(csv_file_processed):
 
 # On suppose que le fichier a été nettoyé, prétraité et avec une colonne d'entiers représentant à quel cluster appartient chaque ligne
 # On cherche donc maintenant à trouver les meilleurs mots pour décrire chaque cluster en utilisant la méthode "term frequency and inverse document frequency"
-def TF_IDF(csv_file_processed, nb_clusters):
+def TF_IDF(csv_file_processed, nb_clusters, csv_file_tfidf):
     data = pd.read_table(csv_file_processed, sep=",", low_memory=False)
 
     data['text'] = data['text'].apply(lambda x: word_tokenize(x))
@@ -402,21 +402,29 @@ def TF_IDF(csv_file_processed, nb_clusters):
             tf = words_by_cluster[data.at[i, 'cluster']][word] / len(data)
             idf = len(data) / words[word]
             tf_idf[data.at[i, 'cluster']][word] = tf * idf
+        data.at[i, 'text'] = ' '.join(data.at[i, 'text'])
 
     # On affiche les mots les plus importants pour chaque cluster
-    for i in range(nb_clusters):
-        print("Cluster", i)
-        print(sorted(tf_idf[i], key=tf_idf[i].get, reverse=True)[:10])
+    # for i in range(nb_clusters):
+    #     print("Cluster", i)
+    #     print(sorted(tf_idf[i], key=tf_idf[i].get, reverse=True)[:10])
+
+    # On ajoute une colonne pour chaque ligne avec les 10 mots les plus importants du cluster auquel elle appartient
+    for i in range(len(data)):
+        data.at[i, 'important_words'] = ' '.join(sorted(tf_idf[data.at[i, 'cluster']], key=tf_idf[data.at[i, 'cluster']].get, reverse=True)[:10])
+
+    # On met les données dans un fichier csv
+    data.to_csv(csv_file_tfidf, index=False, sep=",")
 
 
 # Étude sur l'axe temporel
-# Pour chaque cluster, on détermine l'interval de temps où les photos ont été prises
-# Si cet interval est très court, cela signifie que c'est un cluster temporel ponctuel
-# Si cet interval est très long, cela signifie que c'est un cluster temporel permanent
+# Pour chaque cluster, on détermine l'intervalle de temps où les photos ont été prises
+# Si cet intervalle est très court, cela signifie que c'est un cluster temporel ponctuel
+# Si cet intervalle est très long, cela signifie que c'est un cluster temporel permanent
 # On a ces colonnes : date_taken_minute,date_taken_hour,date_taken_day,date_taken_month,date_taken_year
-# Il faut en faire une seule date sur lesquelles on peut calculer l'interval entre 
+# Il faut en faire une seule date sur lesquelles on peut calculer l'intervalle entre 
 # Date max et date min pour chaque cluster
-def analyse_temporelle(csv_file, nb_clusters):
+def analyse_temporelle(csv_file, nb_clusters, csv_file_temporel):
     data = pd.read_table(csv_file, sep=",", low_memory=False)
 
     # On crée une colonne date
@@ -434,26 +442,27 @@ def analyse_temporelle(csv_file, nb_clusters):
             dates[data.at[i, 'cluster']]['max'] = data.at[i, 'date']
 
     # On affiche les dates min et max pour chaque cluster
-    for i in range(nb_clusters):
-        print("Cluster", i)
-        print("Date min:", dates[i]['min'])
-        print("Date max:", dates[i]['max'])
+    # for i in range(nb_clusters):
+    #     print("Cluster", i)
+    #     print("Date min:", dates[i]['min'])
+    #     print("Date max:", dates[i]['max'])
 
     # On regarde maintenant la différence entre les dates min et max pour chaque cluster
-    # Si la différence est très grande (plus de 1 mois), cela signifie que c'est un cluster temporel permanent
+    # Si la différence est très grande (arbitrairement plus de 1 mois), cela signifie que c'est un cluster temporel permanent
     # On ajoute donc une autre colonne pour chaque cluster qui indique si c'est un cluster temporel ponctuel ou permanent
     for i in range(len(data)):
-        if (dates[data.at[i, 'cluster']]['max'] - dates[data.at[i, 'cluster']]['min']).days > 30:
+        if (dates[data.at[i, 'cluster']]['max'] - dates[data.at[i, 'cluster']]['min']).days > 7:
             data.at[i, 'temporal_cluster'] = 'permanent'
         else:
-            data.at[i, 'temporal_cluster'] = 'ponctual'
+            data.at[i, 'temporal_cluster'] = 'ponctuel'
     
     # On affiche pour chaque cluster si il est temporel ponctuel ou permanent
-    for i in range(nb_clusters):
-        print("Cluster", i)
-        print(data[data['cluster'] == i]['temporal_cluster'].value_counts())
+    # for i in range(nb_clusters):
+    #     print("Cluster", i)
+    #     print(data[data['cluster'] == i]['temporal_cluster'].value_counts())
     
-    
+    # On met les données dans un fichier csv
+    data.to_csv(csv_file_temporel, index=False, sep=",")
 
 
 #################
@@ -602,7 +611,8 @@ if (data_mining == 1):
     # wordcloud(csv_file_processed_sample)
 
     csv_file_processed_sample_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_processed-SAMPLE_fake_clusters.csv"
+    csv_file_tfidf = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_tfidf.csv"
+    TF_IDF(csv_file_processed_sample_cluster, 3, csv_file_tfidf)
 
-    # TF_IDF(csv_file_processed_sample_cluster, 3)
-
-    analyse_temporelle(csv_file_processed_sample_cluster, 3)
+    csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_temporel.csv"
+    analyse_temporelle(csv_file_tfidf, 3, csv_file_temporel)
