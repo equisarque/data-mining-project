@@ -43,21 +43,22 @@ import matplotlib.pyplot as plt
 #########################
 
 # activer la partie Data Mining (le code de la Fougère)
-data_mining = 1 # 1 = activé, 0 = désactivé
+data_mining = 0 # 1 = activé, 0 = désactivé
 
 # activer la partie Clusterisation (le code du lutin)
-clusterisation = 0 # 1 = activé, 0 = désactivé
+clusterisation = 1 # 1 = activé, 0 = désactivé
 
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
 csv_file_clean = "./flickr_data_clean.csv"
+csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
 
 #demander nettoyage des données
 data_to_clean = 0 # 0 : don't clean, 1 : clean
 #/!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
 
 # choisir le nombres de ligne aléatoire du fichier, 0 = toutes les lignes
-nb_line = 30000
+nb_line = 10000
 
 # choisir l'algorithme de clusterisation
 
@@ -67,6 +68,9 @@ nb_line = 30000
 #clustering_algo = "hierarchical single"
 #clustering_algo = "hierarchical complete"
 clustering_algo = "dbscan"
+
+#ne pas manipuler
+nb_cluster_current = 0
 
 #####################
 #Liste des Fonctions#
@@ -131,29 +135,39 @@ def cleaning(csv_file, csv_file_clean):
 
         return True
 
-
 # Calcul du silhouette score
-def silhouette(current_algo, labels, n_clusters):
+def silhouette(current_algo, labels, n_clusters, data):
     if (current_algo == "average"):
         current_algo = "hierarchical average"
     elif (current_algo == "single"):
         current_algo = "hierarchical single"
     elif (current_algo == "complete"):
         current_algo = "hierarchical complete"
+    nb_cluster_current = n_clusters
 
-    print(data_cluster)
+    
 
-    silhouette_avg = silhouette_score(data_cluster, labels, metric='euclidean')
-    sample_silhouette_values = silhouette_samples(data_cluster, labels, metric='euclidean')
-    data['silhouette ' + current_algo] = sample_silhouette_values
+    new_data, new_labels, data_cluster_new = clean_data_without_cluster(data, current_algo)
+
+    silhouette_avg = silhouette_score(data_cluster_new, new_labels, metric='euclidean')
+    sample_silhouette_values = silhouette_samples(data_cluster_new, new_labels, metric='euclidean')
+    new_data['silhouette ' + current_algo] = sample_silhouette_values
 
     # silhouette per cluster
-    data_by_cluster = data.groupby('cluster '+ current_algo)['silhouette ' + current_algo].mean()
+    data_by_cluster = new_data.groupby('cluster '+ current_algo)['silhouette ' + current_algo].mean()
     # number of elements per cluster
-    nb_by_cluster = data['cluster ' + current_algo].value_counts()
+    nb_by_cluster = new_data['cluster ' + current_algo].value_counts()
 
-    plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster, current_algo)
+    plot_silhouette(sample_silhouette_values, silhouette_avg, new_labels, data_by_cluster, n_clusters, nb_by_cluster, current_algo)
 
+def clean_data_without_cluster(data, current_algo):
+    #retirer les lignes hors des cluster
+    new_data = data[data['cluster '+ current_algo] != -1]
+    data_cluster_new = new_data[['lat','long']]
+    new_labels = new_data['cluster ' + current_algo]
+    new_data.to_csv(csv_file_clean_with_cluster, index=False, sep=",")
+
+    return new_data, new_labels, data_cluster_new
 
 # Affichage du silhouette plot 
 def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster, current_algo):
@@ -196,7 +210,6 @@ def k_means():
     kmeans.fit(data_cluster)
     labels = kmeans.labels_
     data['cluster kmeans'] = labels
-
     silhouette(labels=labels, n_clusters=6)
 
 # Affichage de Hierarchical Clustering
@@ -289,14 +302,13 @@ def applied_DBscan(best_eps, best_min_samples):
     best_labels = best_dbscan.fit_predict(scaled_data)
     data['cluster dbscan'] = best_labels
     n_clusters = len(set(best_labels)) - (1 if -1 in best_labels else 0)
-    silhouette(clustering_algo, best_labels, n_clusters)
-    data['silhouette dbscan'] = silhouette_samples(scaled_data, best_labels, metric='euclidean')
+    silhouette(clustering_algo, best_labels, n_clusters, data)
 
 # Création de la carte
 def creer_map(algo, my_map, liste_color):
     for i in range(len(data_cluster)):
-        if data.at[i,'cluster ' + algo] == -1:
-            continue
+        # if data.at[i,'cluster ' + algo] == -1:
+        #     continue
         folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"title"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
     my_map.save(algo + "_map.html")
 
