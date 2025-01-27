@@ -50,7 +50,7 @@ clusterisation = 1 # 1 = activé, 0 = désactivé
 
 #indiquer position fichier
 csv_file = "./flickr_data_clean.csv"
-csv_file_clean = "./flickr_data_clean.csv"
+csv_file_clean = "./flickr_data_cleaned.csv"
 # csv_file_clean_with_cluster = "./flickr_data_clean_with_csv.csv"
 csv_file_clean_with_cluster = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_clean_with_csv.csv" # Pour windows
 
