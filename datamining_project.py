@@ -137,6 +137,7 @@ def cleaning(csv_file, csv_file_clean):
 
 # Calcul du silhouette score
 def silhouette(current_algo, labels, n_clusters, data):
+    global nb_cluster_current
     if (current_algo == "average"):
         current_algo = "hierarchical average"
     elif (current_algo == "single"):
@@ -145,7 +146,7 @@ def silhouette(current_algo, labels, n_clusters, data):
         current_algo = "hierarchical complete"
     nb_cluster_current = n_clusters
 
-    
+
 
     new_data, new_labels, data_cluster_new = clean_data_without_cluster(data, current_algo)
 
@@ -628,3 +629,8 @@ if (data_mining == 1):
 
     csv_file_temporel = "C:/Users/felzi/Desktop/INSA/4IF/S1/DataMining/flickr_data_temporel.csv"
     analyse_temporelle(csv_file_tfidf, 3, csv_file_temporel)
+    # TF_IDF(csv_file_processed_sample_cluster, 3)
+
+    analyse_temporelle(csv_file_processed_sample_cluster, 3)
+
+print(nb_cluster_current)
