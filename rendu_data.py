@@ -48,8 +48,8 @@ nb_line = 500
 
 # Choix de l'algorithme de clusterisation (1 seul à la fois):
 
-clustering_algo = "kmeans"
-# clustering_algo = "hierarchical all_linkage"
+# clustering_algo = "kmeans"
+clustering_algo = "hierarchical all_linkage"
 # clustering_algo = "hierarchical average"
 # clustering_algo = "hierarchical single"
 # clustering_algo = "hierarchical complete"
