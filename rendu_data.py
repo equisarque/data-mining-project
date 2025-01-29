@@ -39,7 +39,7 @@ nltk.download('punkt_tab')
 assert "flickr_data2.csv" in os.listdir(), "flickr_data2.csv n'est pas dans le répertoire"
 
 # Indiquer position fichier
-csv_file = "./flickr_data.csv"
+csv_file = "./flickr_data2.csv"
 csv_file_clean = "./flickr_data_clean.csv"
 csv_file_clean_with_cluster = "./flickr_data_clustered.csv"
 
