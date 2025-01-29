@@ -39,16 +39,16 @@ nltk.download('punkt_tab')
 assert "flickr_data2.csv" in os.listdir(), "flickr_data2.csv n'est pas dans le répertoire"
 
 # Indiquer position fichier
-csv_file = "./flickr_data_clean.csv"
+csv_file = "./flickr_data.csv"
 csv_file_clean = "./flickr_data_clean.csv"
 csv_file_clean_with_cluster = "./flickr_data_clustered.csv"
 
 # Pour effectuer le nettoyage des données (1 pour nettoyer, 0 pour ne pas nettoyer)
 # /!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
-data_to_clean = 0
+data_to_clean = 1
 
 # Choix du nombres de lignes aléatoires à prendre (0 pour tout prendre)
-nb_line = 0
+nb_line = 500
 
 # Choix de l'algorithme de clusterisation (1 seul à la fois):
 
