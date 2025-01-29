@@ -27,6 +27,10 @@ from nltk.tokenize import word_tokenize
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt_tab')
+
 ##############################
 # CONFIGURATION DU PROGRAMME #
 ##############################
@@ -35,21 +39,22 @@ import matplotlib.pyplot as plt
 assert "flickr_data2.csv" in os.listdir(), "flickr_data2.csv n'est pas dans le répertoire"
 
 # Indiquer position fichier
-csv_file = "./flickr_data2.csv"
+csv_file = "./flickr_data_clean.csv"
 csv_file_clean = "./flickr_data_clean.csv"
 csv_file_clean_with_cluster = "./flickr_data_clustered.csv"
 
 # Pour effectuer le nettoyage des données (1 pour nettoyer, 0 pour ne pas nettoyer)
 # /!\ si le nettoyage n'est pas demandé donner un fichier nettoyé à la variable csv_file ci-dessus
-data_to_clean = 0 
+data_to_clean = 0
 
 # Choix du nombres de lignes aléatoires à prendre (0 pour tout prendre)
-nb_line = 500
+nb_line = 0
 
 # Choix de l'algorithme de clusterisation (1 seul à la fois):
 
-# clustering_algo = "kmeans"
-clustering_algo = "hierarchical all_linkage"
+# clustering_algo = None # aucune clusterisation
+clustering_algo = "kmeans"
+# clustering_algo = "hierarchical all_linkage"
 # clustering_algo = "hierarchical average"
 # clustering_algo = "hierarchical single"
 # clustering_algo = "hierarchical complete"
@@ -239,7 +244,6 @@ def plot_dendrogram(model, lbls, title='Hierarchical Clustering Dendrogram', x_t
 def hierarchical(data, labels, metric='euclidean', linkage='average', n_clusters=None, dist_thres=None):
     model = AgglomerativeClustering(distance_threshold=dist_thres, n_clusters=n_clusters, metric=metric, linkage=linkage, compute_full_tree=True, compute_distances=True)
     model = model.fit(data)
-    
     txt_title = 'Hierarchical Clustering Dendrogram, linkage: ' + linkage
     f = plot_dendrogram(model=model, lbls=labels, title=txt_title, x_title='coordinates')
     
@@ -256,10 +260,9 @@ def choosing_linkage():
         linkage = ['complete', 'average', 'single']
 
     for link in linkage:
-        m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=125, dist_thres=None)
-        labels = m.labels_
+        m, f = hierarchical(data_cluster, list(data_cluster.index), metric='euclidean', linkage=link, n_clusters=100, dist_thres=None)
         data['cluster hierarchical ' + link] = m.labels_
-        silhouette(link, 125, data)
+        silhouette(link, 100, data)
 
 # Définition de DBSCAN
 def find_optimal_eps(data, min_pts):
@@ -287,12 +290,13 @@ def applied_DBscan(best_eps, best_min_samples):
 
 # Création de la carte
 def creer_map(algo, my_map, liste_color, csv_file):
+    if clustering_algo == "dbscan":
+            csv_file = "./flickr_data_final.csv"
     data = pd.read_table(csv_file, sep=",", low_memory=False)
     for i in range(len(data)):
         if data.at[i,'cluster ' + algo] == -1:
             continue
         if clustering_algo == "dbscan":
-            csv_file = "./flickr_data_final.csv"
             folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], tooltip=data.at[i,"temporal_cluster"], popup=data.at[i,"important_words"], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
         else:
             folium.Circle(location=[data.at[i,"lat"], data.at[i,"long"]], radius = 15,color =liste_color[data.at[i,'cluster ' + algo]%len(liste_color)]).add_to(my_map)
@@ -513,7 +517,8 @@ elif (clustering_algo == "dbscan"):
     best_min_samples = 10
     # #trouver le meilleur paramètre
     # min_pnts = 15 # on trouve 0,25
-    # find_optimal_eps(scaled_data, min_pnts)
+    # find_optimal_eps(scaled_data, min_pnts)*
+    print("grrggr")
     applied_DBscan(best_eps,best_min_samples)
 
 
@@ -553,7 +558,7 @@ if (clustering_algo == "hierarchical all_linkage"):
     creer_map('hierarchical average', my_map, liste_color, csv_file_clean_with_cluster)
     creer_map('hierarchical single', my_map, liste_color, csv_file_clean_with_cluster)
     creer_map('hierarchical complete', my_map, liste_color, csv_file_clean_with_cluster)
-else:
+elif (clustering_algo != None):
     creer_map(clustering_algo, my_map, liste_color, csv_file_clean_with_cluster)
 
 #afficher tous les schémas
