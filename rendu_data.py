@@ -1,5 +1,12 @@
 # Projet Fouille de Données : Joris FELZINES - Guillaume MANTZARIDES
 
+'''
+Liste des librairies extérieures utilisées à télécharger (toutes correspondent à la version la plus récente au 30/01/2025)
+- folium
+- wordcloud
+- nltk
+'''
+
 import os
 
 # Imports pour montrer la carte
@@ -53,12 +60,12 @@ nb_line = 500
 # Choix de l'algorithme de clusterisation (1 seul à la fois):
 
 # clustering_algo = None # aucune clusterisation
-clustering_algo = "kmeans"
+# clustering_algo = "kmeans"
 # clustering_algo = "hierarchical all_linkage"
 # clustering_algo = "hierarchical average"
 # clustering_algo = "hierarchical single"
 # clustering_algo = "hierarchical complete"
-# clustering_algo = "dbscan" # /!\ nb_line doit être > 10000 pour dbscan
+clustering_algo = "dbscan" # /!\ nb_line doit être > 10000 pour dbscan
 
 # Variable globale nécessaire pour la partie data mining
 nb_cluster_current = 0
