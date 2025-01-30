@@ -1,4 +1,4 @@
-# Datamining Project Joris FELZINES - Guillaume MANTZARIDES
+# Projet Fouille de Données : Joris FELZINES - Guillaume MANTZARIDES
 
 import os
 
@@ -166,7 +166,7 @@ def clean_data_without_cluster(data, current_algo):
 
 # Affichage du silhouette plot 
 def plot_silhouette(sample_silhouette_values, silhouette_avg, labels, data_by_cluster, n_clusters, nb_by_cluster, current_algo):
-    # Create the plot
+    # Créer le plot
     fig = plt.figure(figsize=(10, 6))
     
     y_lower = 10
@@ -466,13 +466,13 @@ else:
     random_data = data.sample(n=nb_line, random_state=42)  # 'random_state' permet assure la reproductibilitée
     data = random_data.reset_index(drop=True)
 
-#supprime les colonnes excepté long and lat
+# Supprime les colonnes excepté long and lat
 data_cluster = data[['lat','long']]
 
 # Rééchelonne les données
 scaler = StandardScaler()
 scaled_data = scaler.fit_transform(data_cluster)
-# create a DataFrame
+# On crée le DataFrame
 data_cluster = pd.DataFrame(data=scaled_data, columns=data_cluster.columns)
 
 #########
@@ -515,10 +515,9 @@ elif (clustering_algo == "hierarchical average" or clustering_algo == "hierarchi
 elif (clustering_algo == "dbscan"):
     best_eps = 0.008
     best_min_samples = 10
-    # #trouver le meilleur paramètre
+    # Ces lignes ont été utilisées pour trouver le meilleur paramètre
     # min_pnts = 15 # on trouve 0,25
-    # find_optimal_eps(scaled_data, min_pnts)*
-    print("grrggr")
+    # find_optimal_eps(scaled_data, min_pnts) 
     applied_DBscan(best_eps,best_min_samples)
 
 
@@ -529,16 +528,16 @@ elif (clustering_algo == "dbscan"):
 csv_file_temporel = "./flickr_data_final.csv"
 csv_file_tfidf = "./flickr_data_tfidf.csv"
 after_clustering = "./flickr_data_clustered.csv"
-csv_file_processed_sample = "./flickr_data_processed-SAMPLE.csv"
+csv_file_processed = "./flickr_data_processed.csv"
 
 if clustering_algo == "dbscan":
 
     # Preprocessing des données
-    preprocessing(after_clustering, csv_file_processed_sample)
+    preprocessing(after_clustering, csv_file_processed)
 
-    wordcloud(csv_file_processed_sample)
+    wordcloud(csv_file_processed)
 
-    TF_IDF(csv_file_processed_sample, nb_cluster_current, csv_file_tfidf)
+    TF_IDF(csv_file_processed, nb_cluster_current, csv_file_tfidf)
 
     analyse_temporelle(csv_file_tfidf, nb_cluster_current, csv_file_temporel)
 
@@ -561,6 +560,6 @@ if (clustering_algo == "hierarchical all_linkage"):
 elif (clustering_algo != None):
     creer_map(clustering_algo, my_map, liste_color, csv_file_clean_with_cluster)
 
-#afficher tous les schémas
+# Afficher tous les schémas
 plt.show()
 
